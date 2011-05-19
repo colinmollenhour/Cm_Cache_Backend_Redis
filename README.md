@@ -1,4 +1,6 @@
-# Zend_Cache_Backend_Redis proof of concept
+# Zend_Cache_Backend_Redis with support for tags 
+
+! proof of concept
 
 
 ## FEATURES
