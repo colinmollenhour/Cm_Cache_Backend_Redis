@@ -31,6 +31,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'port'   => '6379',
             'database' => '1',
             'notMatchingTags' => TRUE,
+            'use_redisent' => FALSE,
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
         parent::setUp($notag);

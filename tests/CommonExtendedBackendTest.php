@@ -74,7 +74,6 @@ class Zend_Cache_CommonExtendedBackendTest extends Zend_Cache_CommonBackendTest 
             return;
         }
         $res = $this->_instance->getIds();
-      var_dump($res);
         $this->assertTrue(count($res) == 3);
         $this->assertTrue(in_array('bar', $res));
         $this->assertTrue(in_array('bar2', $res));
