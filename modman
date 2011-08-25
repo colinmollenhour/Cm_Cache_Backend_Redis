@@ -1,0 +1,2 @@
+Zend/Cache/Backend/*               app/code/core/Zend/Cache/Backend/
+tests/*                            tests/
