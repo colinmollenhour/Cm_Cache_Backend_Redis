@@ -142,6 +142,11 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
             	$this->_redis->sAdd(self::PREFIX_ID_TAGS . $id, $tag);
             }
         }
+
+        // Expire the list of tags for this key at the same time the key expires
+        if ($lifetime) {
+            $this->_redis->expire(self::PREFIX_ID_TAGS . $id, $lifetime);
+        }
         
         // update the list with all the ids
         if($this->_notMatchingTags) {
@@ -497,13 +502,15 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     {
     	$ttl = $this->_redis->ttl(self::PREFIX_DATA . $id);
         if ($ttl) {
-          return (bool) $this->_redis->expire(self::PREFIX_DATA . $id, $ttl + $extraLifetime);
+            $expireAt = time() + $ttl + $extraLifetime;
+            $this->_redis->expireAt(self::PREFIX_ID_TAGS . $id, $expireAt);
+            return (bool) $this->_redis->expireAt(self::PREFIX_DATA . $id, $expireAt);
         }
         return false;
     }
 
     /**
-     * Required to pass unit tests? huh?
+     * Required to pass unit tests
      *
      * @param  string $id
      * @return void
@@ -511,6 +518,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     public function ___expire($id)
     {
         $this->_redis->expire(self::PREFIX_DATA . $id, 0);
+        $this->_redis->expire(self::PREFIX_ID_TAGS . $id, 0);
     }
 
     /**
