@@ -1,13 +1,14 @@
-# Zend_Cache_Backend_Redis with support for tags 
+# Zend_Cache backend using Redis with full support for tags
 
-! proof of concept
-
+This Zend_Cache backend allows you to use a Redis server as a central cache storage. Tags are supported
+without the use of TwoLevels cache so this backend is safe to use with a cluster. Works great with Magento!
 
 ## FEATURES
 
  - Uses the [phpredis PECL extension](https://github.com/owlient/phpredis) (requires **variadic** branch)
  - Falls-back to [redisent](https://github.com/damz/redisent) if phpredis isn't present or `use_redisent` is enabled
  - Tagging is handled using the “set” datatype for efficient tag management
+ - Key expiry is handled automatically by Redis, safe to use with maxmemory
  - Unit tested!
 
 ## INSTALLATION (Magento)
@@ -30,3 +31,6 @@
  - Add config support for socket connection
  - Add auto-cleanup of tag metadata?
 
+## RELATED
+
+ - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
