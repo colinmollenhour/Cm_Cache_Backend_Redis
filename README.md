@@ -28,7 +28,9 @@ without the use of TwoLevels cache so this backend is safe to use with a cluster
 
 ## TODO
 
+ - Switch to [Credis](https://github.com/colinmollenhour/credis) for Redis driver
  - Add config support for socket connection
+ - Use pipelining to improve performance
 
 ## RELATED
 
