@@ -129,28 +129,27 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
 
         if ($lifetime) {
             $result = $this->_redis->setex(self::PREFIX_DATA . $id, $lifetime, $data);
-
         } else {
             $result = $this->_redis->set(self::PREFIX_DATA . $id, $data);
         }
 
-        if (count($tags) > 0) {
+        if (count($tags) > 0)
+        {
+            // update the list with all the tags
+            $this->_redisVariadic('sAdd', self::SET_TAGS, $tags);
+
+            // update the list of tags for this id, expire at same time as data key
+            $this->_redis->del(self::PREFIX_ID_TAGS . $id);
+            $this->_redisVariadic('sAdd', self::PREFIX_ID_TAGS . $id, $tags);
+            if ($lifetime) {
+                $this->_redis->expire(self::PREFIX_ID_TAGS . $id, $lifetime);
+            }
+
+            // update the id list for each tag
             foreach($tags as $tag)
             {
-                // update the id list for this tag
                 $this->_redis->sAdd(self::PREFIX_TAG_IDS . $tag, $id);
-
-                // update the list with all the tags
-                $this->_redis->sAdd(self::SET_TAGS, $tag);
-
-                // update the list of tags for this id 
-                $this->_redis->sAdd(self::PREFIX_ID_TAGS . $id, $tag);
             }
-        }
-
-        // Expire the list of tags for this id at the same time the data expires
-        if ($lifetime) {
-            $this->_redis->expire(self::PREFIX_ID_TAGS . $id, $lifetime);
         }
 
         // update the list with all the ids
@@ -161,7 +160,13 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         return ($result == 'OK');
     }
 
-    protected function _remove($id)
+    /**
+     * Remove a cache record
+     *
+     * @param  string $id Cache id
+     * @return boolean True if no problem
+     */
+    public function remove($id)
     {
         // remove data
         $result = $this->_redis->del( self::PREFIX_DATA . $id );
@@ -193,25 +198,21 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         }
 
         // remove data
-        call_user_func_array( array($this->_redis, 'del'), $this->_preprocessIds($ids));
+        $this->_redisVariadic('del', $this->_preprocessIds($ids));
 
         // remove ids from list of all ids
         if($this->_notMatchingTags) {
-            $args = $ids;
-            array_unshift($args, self::SET_IDS);
-            call_user_func_array( array($this->_redis, 'srem'), $args);
+            $this->_redisVariadic('srem', self::SET_IDS, $ids);
         }
 
         // update the id list for each tag
-        $tagsToClean = call_user_func_array( array($this->_redis, 'sUnion'), $this->_preprocessIdTags($ids) );
+        $tagsToClean = $this->_redisVariadic('sUnion', $this->_preprocessIdTags($ids) );
         foreach($tagsToClean as $tag) {
-            $args = $ids;
-            array_unshift($args, self::PREFIX_TAG_IDS . $tag);
-            call_user_func_array( array($this->_redis, 'srem'), $args);
+            $this->_redisVariadic('srem', self::PREFIX_TAG_IDS . $tag, $ids);
         }
 
         // remove tag lists for all ids
-        call_user_func_array( array($this->_redis, 'del'), $this->_preprocessIdTags($ids));
+        $this->_redisVariadic('del', $this->_preprocessIdTags($ids));
     }
 
     protected function _removeByMatchingTags($tags)
@@ -219,26 +220,22 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         $ids = $this->getIdsMatchingTags($tags);
         if($ids) {
             // remove data
-            call_user_func_array( array($this->_redis, 'del'), $this->_preprocessIds($ids));
+            $this->_redisVariadic('del', $this->_preprocessIds($ids));
 
             // remove ids from tags not cleared
             $idTags = $this->_preprocessIdTags($ids);
-            $otherTags = (array) call_user_func_array( array($this->_redis, 'sUnion'), $idTags );
+            $otherTags = (array) $this->_redisVariadic('sUnion', $idTags);
             $otherTags = array_diff($otherTags, $tags);
             foreach($otherTags as $tag) {
-                $args = $ids;
-                array_unshift($args, self::PREFIX_TAG_IDS . $tag);
-                call_user_func_array( array($this->_redis, 'srem'), $args);
+                $this->_redisVariadic('srem', self::PREFIX_TAG_IDS . $tag, $ids);
             }
 
             // remove tag lists for all ids
-            call_user_func_array( array($this->_redis, 'del'), $idTags);
+            $this->_redisVariadic('del', $idTags);
 
             // remove ids from list of all ids
             if($this->_notMatchingTags) {
-                $args = $ids;
-                array_unshift($args, self::SET_IDS);
-                call_user_func_array( array($this->_redis, 'srem'), $args);
+                $this->_redisVariadic('srem', self::SET_IDS, $ids);
             }
         }
     }
@@ -248,36 +245,30 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         $ids = $this->getIdsMatchingAnyTags($tags);
         if($ids) {
             // remove data
-            call_user_func_array( array($this->_redis, 'del'), $this->_preprocessIds($ids));
+            $this->_redisVariadic('del', $this->_preprocessIds($ids));
 
             // remove ids from tags not cleared
             $idTags = $this->_preprocessIdTags($ids);
-            $otherTags = (array) call_user_func_array( array($this->_redis, 'sUnion'), $idTags );
+            $otherTags = (array) $this->_redisVariadic('sUnion', $idTags );
             $otherTags = array_diff($otherTags, $tags);
             foreach($otherTags as $tag) {
-                $args = $ids;
-                array_unshift($args, self::PREFIX_TAG_IDS . $tag);
-                call_user_func_array( array($this->_redis, 'srem'), $args);
+                $this->_redisVariadic('srem', self::PREFIX_TAG_IDS . $tag, $ids);
             }
 
             // remove tag lists for all ids
-            call_user_func_array( array($this->_redis, 'del'), $idTags);
+            $this->_redisVariadic('del', $idTags);
 
             // remove ids from list of all ids
             if($this->_notMatchingTags) {
-                $args = $ids;
-                array_unshift($args, self::SET_IDS);
-                call_user_func_array( array($this->_redis, 'srem'), $args);
+                $this->_redisVariadic('srem', self::SET_IDS, $ids);
             }
         }
 
         // remove tag id lists
-        call_user_func_array( array($this->_redis, 'del'), $this->_preprocessTagIds($tags));
+        $this->_redisVariadic('del', $this->_preprocessTagIds($tags));
 
         // remove tags from list of tags
-        $args = $tags;
-        array_unshift($args, self::SET_TAGS);
-        call_user_func_array( array($this->_redis, 'srem'), $args);
+        $this->_redisVariadic('srem', self::SET_TAGS, $tags);
     }
 
     protected function _collectGarbage()
@@ -303,27 +294,17 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
                 $this->_redis->del(self::PREFIX_TAG_IDS . $tag);
                 $this->_redis->sRem(self::SET_TAGS, $tag);
             } else {
-                $args = $expired;
-                array_unshift($args, self::PREFIX_TAG_IDS . $tag);
-                call_user_func_array( array($this->_redis, 'sRem'), $args);
+                $this->_redisVariadic('sRem', self::PREFIX_TAG_IDS . $tag, $expired);
             }
             if($this->_notMatchingTags) {
-                $args = $expired;
-                array_unshift($args, self::SET_IDS);
-                call_user_func_array( array($this->_redis, 'sRem'), $args);
+                $this->_redisVariadic('sRem', self::SET_IDS, $expired);
             }
         }
-    }
 
-    /**
-     * Remove a cache record
-     *
-     * @param  string $id Cache id
-     * @return boolean True if no problem
-     */
-    public function remove($id)
-    {
-        return $this->_remove($id);
+        // Clean up global list of ids for ids with no tag
+        if($this->_notMatchingTags) {
+            // TODO
+        }
     }
 
     /**
@@ -444,7 +425,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function getIdsMatchingTags($tags = array())
     {
-        return (array) call_user_func_array( array($this->_redis, 'sInter'), $this->_preprocessTagIds($tags) );
+        return (array) $this->_redisVariadic('sInter', $this->_preprocessTagIds($tags) );
     }
 
     /**
@@ -460,10 +441,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         if( ! $this->_notMatchingTags) {
             Zend_Cache::throwException("notMatchingTags is currently disabled.");
         }
-
-        $args = $this->_preprocessTagIds($tags);
-        array_unshift($args, self::SET_IDS);
-        return (array) call_user_func_array( array($this->_redis, 'sDiff'), $args );
+        return (array) $this->_redisVariadic('sDiff', self::SET_IDS, $this->_preprocessTagIds($tags) );
     }
 
     /**
@@ -476,7 +454,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function getIdsMatchingAnyTags($tags = array())
     {
-        return (array) call_user_func_array( array($this->_redis, 'sUnion'), $this->_preprocessTagIds($tags));
+        return (array) $this->_redisVariadic('sUnion', $this->_preprocessTagIds($tags));
     }
 
     /**
@@ -583,6 +561,16 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     protected function _preprocessTagIds($tags)
     {
         return $this->_preprocessItems($tags, self::PREFIX_TAG_IDS);
+    }
+
+    protected function _redisVariadic($command, $arg1, $args = NULL)
+    {
+        if(is_array($arg1)) {
+            $args = $arg1;
+        } else {
+            array_unshift($args, $arg1);
+        }
+        return call_user_func_array( array($this->_redis, $command), $args);
     }
 
     /**
