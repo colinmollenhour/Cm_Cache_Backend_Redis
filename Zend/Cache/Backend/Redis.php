@@ -399,10 +399,16 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function getIds()
     {
-        if( ! $this->_notMatchingTags) {
-            Zend_Cache::throwException("notMatchingTags must be enabled to use getIds.");
+        if($this->_notMatchingTags) {
+            return (array) $this->_redis->sMembers(self::SET_IDS);
+        } else {
+            $keys = $this->_redis->keys(self::PREFIX_DATA . '*');
+            $prefixLen = strlen(self::PREFIX_DATA);
+            foreach($keys as &$key) {
+                $key = substr($key, $prefixLen);
+            }
+            return $keys;
         }
-        return (array) $this->_redis->sMembers(self::SET_IDS);
     }
 
     /**
