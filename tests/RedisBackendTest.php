@@ -48,4 +48,19 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         // nah
     }
 
+    public function testGarbageCleanup()
+    {
+        $this->_instance->clean();
+        $this->_instance->save('BLAH','foo', array('TAG1', 'TAG2'), 1);
+        $this->_instance->save('BLAH','bar', array('TAG1', 'TAG3'), 1);
+        $this->assertTrue($this->_instance->getIdsMatchingAnyTags(array('TAG1','TAG2','TAG3')) == array('foo','bar'));
+
+        // sleep(2);
+        $this->_instance->___expire('foo');
+        $this->_instance->___expire('bar');
+
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_OLD);
+        $this->assertTrue($this->_instance->getIdsMatchingAnyTags(array('TAG1','TAG2','TAG3')) === array());
+        $this->assertTrue($this->_instance->getTags() === array());
+    }
 }
