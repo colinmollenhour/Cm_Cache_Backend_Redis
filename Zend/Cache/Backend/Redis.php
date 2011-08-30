@@ -71,6 +71,12 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         if ( isset($options['notMatchingTags']) ) {
             $this->_notMatchingTags = (bool) $options['notMatchingTags'];
         }
+
+        if ( isset($options['automatic_cleaning_factor']) ) {
+            $this->_options['automatic_cleaning_factor'] = (int) $options['automatic_cleaning_factor'];
+        } else {
+            $this->_options['automatic_cleaning_factor'] = 20000;
+        }
     }
     /**
      * Load value with given id from cache
@@ -301,9 +307,11 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
                 array_unshift($args, self::PREFIX_TAG_IDS . $tag);
                 call_user_func_array( array($this->_redis, 'sRem'), $args);
             }
-            $args = $expired;
-            array_unshift($args, self::SET_IDS);
-            call_user_func_array( array($this->_redis, 'sRem'), $args);
+            if($this->_notMatchingTags) {
+                $args = $expired;
+                array_unshift($args, self::SET_IDS);
+                call_user_func_array( array($this->_redis, 'sRem'), $args);
+            }
         }
     }
 
@@ -384,7 +392,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function isAutomaticCleaningAvailable()
     {
-        return false;
+        return TRUE;
     }
 
     /**
@@ -542,7 +550,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     public function getCapabilities()
     {
         return array(
-            'automatic_cleaning' => false,
+            'automatic_cleaning' => ($this->_options['automatic_cleaning_factor'] > 0),
             'tags'               => true,
             'expired_read'       => false,
             'priority'           => false,

@@ -9,6 +9,7 @@ without the use of TwoLevels cache so this backend is safe to use with a cluster
  - Falls-back to [redisent](https://github.com/damz/redisent) if phpredis isn't present or `use_redisent` is enabled
  - Tagging is handled using the “set” datatype for efficient tag management
  - Key expiry is handled automatically by Redis, safe to use with maxmemory
+ - Automatic cleaning optional for cleaning of global ids set and tag ids sets and tags set.
  - Unit tested!
 
 ## INSTALLATION (Magento)
@@ -23,13 +24,11 @@ without the use of TwoLevels cache so this backend is safe to use with a cluster
 
 ## KNOWN ISSUES
 
- - Proper tag metadata cleanup cannot be done automatically on item expiry
- (should only be a problem if tags and ids are rarely reused and rarely cleared)
+ - None
 
 ## TODO
 
  - Add config support for socket connection
- - Add auto-cleanup of tag metadata?
 
 ## RELATED
 
