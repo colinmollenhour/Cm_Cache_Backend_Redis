@@ -5,7 +5,7 @@ without the use of TwoLevels cache so this backend is safe to use with a cluster
 
 ## FEATURES
 
- - Uses the [phpredis PECL extension](https://github.com/owlient/phpredis) (requires **variadic** branch)
+ - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) (requires **variadic** branch)
  - Falls-back to [redisent](https://github.com/damz/redisent) if phpredis isn't present or `use_redisent` is enabled
  - Tagging is handled using the “set” datatype for efficient tag management
  - Key expiry is handled automatically by Redis, safe to use with maxmemory
