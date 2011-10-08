@@ -48,7 +48,12 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         // nah
     }
 
-    public function testGarbageCleanup()
+    public function testGetWithAnExpiredCacheId()
+    {
+        // not supported
+    }
+
+    public function testExpiredCleanup()
     {
         $this->_instance->clean();
         $this->_instance->save('BLAH','foo', array('TAG1', 'TAG2'), 1);
@@ -63,4 +68,72 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue($this->_instance->getIdsMatchingAnyTags(array('TAG1','TAG2','TAG3')) === array());
         $this->assertTrue($this->_instance->getTags() === array());
     }
+
+    /**
+            $this->_instance->save('bar : data to cache', 'bar', array('tag3', 'tag4'));
+            $this->_instance->save('bar2 : data to cache', 'bar2', array('tag3', 'tag1'));
+            $this->_instance->save('bar3 : data to cache', 'bar3', array('tag2', 'tag3'));
+     */
+    public function testGetIdsMatchingAnyTags()
+    {
+        $res = $this->_instance->getIdsMatchingAnyTags(array('tag999'));
+        $this->assertEquals(0, count($res));
+    }
+
+    public function testGetIdsMatchingAnyTags2()
+    {
+        $res = $this->_instance->getIdsMatchingAnyTags(array('tag1', 'tag999'));
+        $this->assertEquals(1, count($res));
+        $this->assertTrue(in_array('bar2', $res));
+    }
+
+    public function testGetIdsMatchingAnyTags3()
+    {
+        $res = $this->_instance->getIdsMatchingAnyTags(array('tag3', 'tag999'));
+        $this->assertEquals(3, count($res));
+        $this->assertTrue(in_array('bar', $res));
+        $this->assertTrue(in_array('bar2', $res));
+        $this->assertTrue(in_array('bar3', $res));
+    }
+
+    public function testGetIdsMatchingAnyTags4()
+    {
+        $res = $this->_instance->getIdsMatchingAnyTags(array('tag1', 'tag4'));
+        $this->assertEquals(2, count($res));
+        $this->assertTrue(in_array('bar', $res));
+        $this->assertTrue(in_array('bar2', $res));
+    }
+
+    public function testCleanModeMatchingAnyTags()
+    {
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag999'));
+        $this->assertTrue(!!$this->_instance->load('bar'));
+        $this->assertTrue(!!$this->_instance->load('bar2'));
+        $this->assertTrue(!!$this->_instance->load('bar3'));
+    }
+
+    public function testCleanModeMatchingAnyTags2()
+    {
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag1', 'tag999'));
+        $this->assertTrue(!!$this->_instance->load('bar'));
+        $this->assertFalse(!!$this->_instance->load('bar2'));
+        $this->assertTrue(!!$this->_instance->load('bar3'));
+    }
+
+    public function testCleanModeMatchingAnyTags3()
+    {
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag3', 'tag999'));
+        $this->assertFalse(!!$this->_instance->load('bar'));
+        $this->assertFalse(!!$this->_instance->load('bar2'));
+        $this->assertFalse(!!$this->_instance->load('bar3'));
+    }
+
+    public function testCleanModeMatchingAnyTags4()
+    {
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag1', 'tag4'));
+        $this->assertFalse(!!$this->_instance->load('bar'));
+        $this->assertFalse(!!$this->_instance->load('bar2'));
+        $this->assertTrue(!!$this->_instance->load('bar3'));
+    }
+
 }
