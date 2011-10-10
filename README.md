@@ -16,7 +16,7 @@ without the use of TwoLevels cache so this backend is safe to use with a cluster
 
 1. Install [redis](http://redis.io/download) (2.4 required)
 2. Install [phpredis](https://github.com/nicolasff/phpredis)
-** For 2.4 support you must use the "variadic" branch: `git checkout -t -b variadic origin/variadic`
+** For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19.
 ** phpredis is optional, but it is much faster than Redisent
 3. Install this module
 ** `modman rediscache clone git://github.com/colinmollenhour/Zend_Cache_Backend_Redis.git`
