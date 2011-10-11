@@ -18,9 +18,21 @@ without the use of TwoLevels cache so this backend is safe to use with a cluster
 2. Install [phpredis](https://github.com/nicolasff/phpredis)
 ** For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19.
 ** phpredis is optional, but it is much faster than Redisent
-3. Install this module
+3. Install this module using [modman](http://code.google.com/p/module-manager/)
 ** `modman rediscache clone git://github.com/colinmollenhour/Zend_Cache_Backend_Redis.git`
-4. Edit app/etc/local.xml to [configure](https://gist.github.com/1172386)
+4. Edit app/etc/local.xml to configure:
+
+        <!-- this is a child node of config/global -->
+        <cache>
+          <backend>Zend_Cache_Backend_Redis</backend>
+          <backend_options>
+            <server>127.0.0.1</server>
+            <port>6379</port>
+            <database>2</database>
+            <use_redisent>0</use_redisent>  <!-- 0 for phpredis, 1 for redisent -->
+            <automatic_cleaning_factor>20000</automatic_cleaning_factor> <!-- optional, 20000 is the default, 0 disables auto clean -->
+          </backend_options>
+        </cache>
 
 ## KNOWN ISSUES
 
