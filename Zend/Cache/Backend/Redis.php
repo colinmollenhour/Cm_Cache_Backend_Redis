@@ -330,7 +330,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
             $expired = array();
             foreach($tagMembers as $id) {
                 if( ! isset($exists[$id])) {
-                    $exists[$id] = $this->_redis->exists($id);
+                    $exists[$id] = $this->_redis->exists(self::PREFIX_DATA . $id);
                 }
                 if( ! $exists[$id]) {
                     $expired[] = $id;
