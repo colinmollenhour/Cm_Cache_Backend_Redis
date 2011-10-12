@@ -324,26 +324,34 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         // Clean up expired keys from tag id set and global id set
         $exists = array();
         $tags = (array) $this->_redis->sMembers(self::SET_TAGS);
-        foreach($tags as $tag) {
+        foreach($tags as $tag)
+        {
+            // Get list of expired ids for each tag
             $tagMembers = $this->_redis->sMembers(self::PREFIX_TAG_IDS . $tag);
-            if( ! count($tagMembers)) continue;
-            $expired = array();
-            foreach($tagMembers as $id) {
-                if( ! isset($exists[$id])) {
-                    $exists[$id] = $this->_redis->exists(self::PREFIX_DATA . $id);
+            if(count($tagMembers)) {
+                $expired = array();
+                foreach($tagMembers as $id) {
+                    if( ! isset($exists[$id])) {
+                        $exists[$id] = $this->_redis->exists(self::PREFIX_DATA . $id);
+                    }
+                    if( ! $exists[$id]) {
+                        $expired[] = $id;
+                    }
                 }
-                if( ! $exists[$id]) {
-                    $expired[] = $id;
-                }
+                if( ! count($expired)) continue;
             }
-            if( ! count($expired)) continue;
 
-            if(count($expired) == count($tagMembers)) {
+            // Remove empty tags or completely expired tags
+            if( ! count($tagMembers) || count($expired) == count($tagMembers)) {
                 $this->_redis->del(self::PREFIX_TAG_IDS . $tag);
                 $this->_redis->sRem(self::SET_TAGS, $tag);
-            } else {
+            }
+            // Clean up expired ids from tag ids set
+            else {
                 $this->_redisVariadic('sRem', self::PREFIX_TAG_IDS . $tag, $expired);
             }
+
+            // Clean up expired ids from ids set
             if($this->_notMatchingTags) {
                 $this->_redisVariadic('sRem', self::SET_IDS, $expired);
             }
