@@ -140,50 +140,70 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
 
         // Set the data
         if ($lifetime) {
-            $result = $this->_redis->setex(self::PREFIX_DATA . $id, $lifetime, $data);
+            $this->_redis->setex(self::PREFIX_DATA . $id, $lifetime, $data);
         } else {
-            $result = $this->_redis->set(self::PREFIX_DATA . $id, $data);
+            $this->_redis->set(self::PREFIX_DATA . $id, $data);
         }
 
-        if ( $result == 'OK' )
+        // Set the modified time
+        if($this->_exactMtime) {
+            if ($lifetime) {
+                $this->_redis->setex(self::PREFIX_MTIME . $id, $lifetime, time());
+            } else {
+                $this->_redis->set(self::PREFIX_MTIME . $id, time());
+            }
+        }
+
+        // Get list of tags previously assigned
+        $oldTags = (array) $this->_redis->sMembers(self::PREFIX_ID_TAGS . $id);
+
+        // Process added tags
+        if ($addTags = array_diff($tags, $oldTags))
         {
-            // Set the modified time
-            if($this->_exactMtime) {
-                if ($lifetime) {
-                    $this->_redis->setex(self::PREFIX_MTIME . $id, $lifetime, time());
-                } else {
-                    $this->_redis->set(self::PREFIX_MTIME . $id, time());
-                }
-            }
+            // Update the list with all the tags
+            $this->_redisVariadic('sAdd', self::SET_TAGS, $addTags);
 
-            if (count($tags) > 0)
+            // Update the list of tags for this id
+            $this->_redisVariadic('sAdd', self::PREFIX_ID_TAGS . $id, $addTags);
+
+            // Update the id list for each tag
+            foreach($addTags as $tag)
             {
-                // Update the list with all the tags
-                $this->_redisVariadic('sAdd', self::SET_TAGS, $tags);
-
-                // Update the list of tags for this id, expire at same time as data key
-                $this->_redis->del(self::PREFIX_ID_TAGS . $id);
-                $this->_redisVariadic('sAdd', self::PREFIX_ID_TAGS . $id, $tags);
-                if ($lifetime) {
-                    $this->_redis->expire(self::PREFIX_ID_TAGS . $id, $lifetime);
-                }
-
-                // Update the id list for each tag
-                foreach($tags as $tag)
-                {
-                    $this->_redis->sAdd(self::PREFIX_TAG_IDS . $tag, $id);
-                }
+                $this->_redis->sAdd(self::PREFIX_TAG_IDS . $tag, $id);
             }
-
-            // Update the list with all the ids
-            if($this->_notMatchingTags) {
-                $this->_redis->sAdd(self::SET_IDS, $id);
-            }
-
-            return TRUE;
         }
 
-        return FALSE;
+        // Expire tags set at same time as data
+        if (count($tags) > 0 && $lifetime) {
+            $this->_redis->expire(self::PREFIX_ID_TAGS . $id, $lifetime);
+        }
+
+        // Process removed tags
+        if ($remTags = array_diff($oldTags, $tags))
+        {
+            // Remove tags from id's tag set
+            $this->_redisVariadic('sRem', self::PREFIX_ID_TAGS . $id, $remTags);
+
+            // Update the id list for each tag, find empty tags
+            $emptyTags = array();
+            foreach($remTags as $tag)
+            {
+                $this->_redis->sRem(self::PREFIX_TAG_IDS . $tag, $id);
+                if( ! $this->_redis->sCard(self::PREFIX_TAG_IDS . $tag)) {
+                    $emptyTags[] = $tag;
+                }
+            }
+
+            // Remove empty tags
+            $this->_redisVariadic('sRem', self::SET_TAGS, $emptyTags);
+        }
+
+        // Update the list with all the ids
+        if($this->_notMatchingTags) {
+            $this->_redis->sAdd(self::SET_IDS, $id);
+        }
+
+        return TRUE;
     }
 
     /**
