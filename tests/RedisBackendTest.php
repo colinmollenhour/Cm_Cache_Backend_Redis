@@ -16,6 +16,8 @@ require_once 'CommonExtendedBackendTest.php';
 
 class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
 
+    protected $forceStandalone = FALSE;
+
     /** @var Zend_Cache_Backend_Redis */
     protected $_instance;
 
@@ -31,7 +33,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'port'   => '6379',
             'database' => '1',
             'notMatchingTags' => TRUE,
-            'force_standalone' => FALSE,
+            'force_standalone' => $this->forceStandalone,
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
         parent::setUp($notag);

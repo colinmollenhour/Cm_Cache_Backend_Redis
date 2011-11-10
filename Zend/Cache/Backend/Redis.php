@@ -503,8 +503,8 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         } else {
             $keys = $this->_redis->keys(self::PREFIX_DATA . '*');
             $prefixLen = strlen(self::PREFIX_DATA);
-            foreach($keys as &$key) {
-                $key = substr($key, $prefixLen);
+            foreach($keys as $index => $key) {
+                $keys[$index] = substr($key, $prefixLen);
             }
             return $keys;
         }
@@ -646,7 +646,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
             'expired_read'       => false,
             'priority'           => false,
             'infinite_lifetime'  => true,
-            'get_list'           => $this->_notMatchingTags,
+            'get_list'           => true,
         );
     }
 
