@@ -52,7 +52,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
             Zend_Cache::throwException('Redis \'server\' not specified.');
         }
 
-        if ( empty($options['port']) ) {
+        if ( empty($options['port']) && substr($options['server'],0,1) != '/' ) {
             Zend_Cache::throwException('Redis \'port\' not specified.');
         }
 
