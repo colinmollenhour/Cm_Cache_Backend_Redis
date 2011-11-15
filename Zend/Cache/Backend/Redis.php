@@ -198,18 +198,6 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
 
         $this->_redis->exec();
 
-        // Remove empty tags (disabled, do this in collectGarbage)
-//        if($remTags) {
-//            $emptyTags = array();
-//            foreach($remTags as $tag)
-//            {
-//                if( ! $this->_redis->sCard(self::PREFIX_TAG_IDS . $tag)) {
-//                    $emptyTags[] = $tag;
-//                }
-//                $this->_redis->sRem( self::SET_TAGS, $emptyTags);
-//            }
-//        }
-
         return TRUE;
     }
 
@@ -255,31 +243,28 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     protected function _removeByNotMatchingTags($tags)
     {
         $ids = $this->getIdsNotMatchingTags($tags);
-        if( ! $ids) {
-            return;
+        if($ids)
+        {
+            $this->_redis->pipeline();
+
+            // Remove data
+            $this->_redis->del( $this->_preprocessIds($ids));
+
+            // Remove mtimes
+            if($this->_exactMtime) {
+                $this->_redis->del( $this->_preprocessMtimes($ids));
+            }
+
+            // Remove ids from list of all ids
+            if($this->_notMatchingTags) {
+                $this->_redis->sRem( self::SET_IDS, $ids);
+            }
+
+            // Remove tag lists for all ids
+            $this->_redis->del( $this->_preprocessIdTags($ids));
+
+            $this->_redis->exec();
         }
-
-        // Remove data
-        $this->_redis->del( $this->_preprocessIds($ids));
-
-        // Remove mtimes
-        if($this->_exactMtime) {
-            $this->_redis->del( $this->_preprocessMtimes($ids));
-        }
-
-        // Remove ids from list of all ids
-        if($this->_notMatchingTags) {
-            $this->_redis->sRem( self::SET_IDS, $ids);
-        }
-
-        // Update the id list for each tag
-        $tagsToClean = $this->_redis->sUnion( $this->_preprocessIdTags($ids) );
-        foreach($tagsToClean as $tag) {
-            $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $ids);
-        }
-
-        // Remove tag lists for all ids
-        $this->_redis->del( $this->_preprocessIdTags($ids));
     }
 
     protected function _removeByMatchingTags($tags)
@@ -287,6 +272,8 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         $ids = $this->getIdsMatchingTags($tags);
         if($ids)
         {
+            $this->_redis->pipeline();
+
             // Remove data
             $this->_redis->del( $this->_preprocessIds($ids));
 
@@ -295,34 +282,26 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
                 $this->_redis->del( $this->_preprocessMtimes($ids));
             }
 
-            // Remove ids from tags not cleared
-            $idTags = $this->_preprocessIdTags($ids);
-            $otherTags = (array) $this->_redis->sUnion( $idTags);
-            $otherTags = array_diff($otherTags, $tags);
-            foreach($otherTags as $tag) {
-                $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $ids);
-            }
-
             // Remove tag lists for all ids
-            $this->_redis->del( $idTags);
+            $this->_redis->del( $this->_preprocessIdTags($ids));
 
             // Remove ids from list of all ids
             if($this->_notMatchingTags) {
                 $this->_redis->sRem( self::SET_IDS, $ids);
             }
+
+            $this->_redis->exec();
         }
     }
 
     protected function _removeByMatchingAnyTags($tags)
     {
         $ids = $this->getIdsMatchingAnyTags($tags);
+
+        $this->_redis->pipeline();
+
         if($ids)
         {
-            $idTags = $this->_preprocessIdTags($ids);
-            $otherTags = (array) $this->_redis->sUnion( $idTags );
-
-            $this->_redis->pipeline();
-
             // Remove data
             $this->_redis->del( $this->_preprocessIds($ids));
 
@@ -331,22 +310,13 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
                 $this->_redis->del( $this->_preprocessMtimes($ids));
             }
 
-            // Remove ids from tags not cleared
-            $otherTags = array_diff($otherTags, $tags);
-            foreach($otherTags as $tag) {
-                $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $ids);
-            }
-
             // Remove tag lists for all ids
-            $this->_redis->del( $idTags);
+            $this->_redis->del( $this->_preprocessIdTags($ids));
 
             // Remove ids from list of all ids
             if($this->_notMatchingTags) {
                 $this->_redis->sRem( self::SET_IDS, $ids);
             }
-        }
-        else {
-            $this->_redis->pipeline();
         }
 
         // Remove tag id lists
