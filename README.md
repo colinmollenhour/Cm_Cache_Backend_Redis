@@ -7,7 +7,7 @@ Works with any Zend Framework project including all versions of Magento!
 ## FEATURES
 
  - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
- - Falls-back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
+ - Standalone mode is not 100% reliable currently. --Falls-back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.--
  - Tagging is fully supported, implemented using the Redis “set” datatype for efficient tag management.
  - Key expiry is handled automatically by Redis, and the cache is safe to use with maxmemory option.
  - Automatic cleaning is optional and not really necessary, but recommended in some cases (frequently changing tags and keys, infrequent tag cleaning).
@@ -38,7 +38,7 @@ Works with any Zend Framework project including all versions of Magento!
         </cache>
 
 ## KNOWN ISSUES
-
+ - Standalone mode sometimes gives "invalid server response" errors. Please provide stack trace if you can reproduce this!
  - Transactions are not used so in very rare circumstances it may be possible for a race-condition to cause tag data
    leaks or corruption. However, atomic operations and pipelined operations reduce these risks greatly and cached data
    is not subject to any known corruption risks. The behavior in the case of a race condition is undefined.
