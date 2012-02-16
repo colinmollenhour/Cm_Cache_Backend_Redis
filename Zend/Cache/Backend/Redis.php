@@ -14,7 +14,6 @@
  * Redis adapter for Zend_Cache
  * 
  * @author Colin Mollenhour
- * @version 0.0.1
  */
 class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
 {
@@ -42,10 +41,6 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function __construct($options = array())
     {
-        if ($options instanceof Zend_Config) {
-            $options = $options->toArray();
-        }
-
         if ( empty($options['server']) ) {
             Zend_Cache::throwException('Redis \'server\' not specified.');
         }
@@ -78,12 +73,13 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
             $this->_options['automatic_cleaning_factor'] = 20000;
         }
     }
+
     /**
      * Load value with given id from cache
      *
      * @param  string  $id                     Cache id
      * @param  boolean $doNotTestCacheValidity If set to true, the cache validity won't be tested
-     * @return string|false cached datas
+     * @return bool|string
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
