@@ -87,7 +87,7 @@ class Zend_Cache_CommonExtendedBackendTest extends Zend_Cache_CommonBackendTest 
             return;
         }
         $res = $this->_instance->getTags();
-        $this->assertTrue(count($res) == 4);
+        $this->assertEquals(4, count($res));
         $this->assertTrue(in_array('tag1', $res));
         $this->assertTrue(in_array('tag2', $res));
         $this->assertTrue(in_array('tag3', $res));
@@ -147,7 +147,7 @@ class Zend_Cache_CommonExtendedBackendTest extends Zend_Cache_CommonBackendTest 
             return;
         }
         $res = $this->_instance->getIdsNotMatchingTags(array('tag3'));
-        $this->assertTrue(count($res) == 0);
+        $this->assertEquals(0, count($res));
     }
 
     public function testGetIdsNotMatchingTags2()

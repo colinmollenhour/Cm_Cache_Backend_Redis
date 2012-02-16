@@ -398,7 +398,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         }
 
         if($mode == Zend_Cache::CLEANING_MODE_ALL) {
-            return ($this->_redis->flushDb() == 'OK');
+            return $this->_redis->flushDb();
         }
 
         if($mode == Zend_Cache::CLEANING_MODE_OLD) {
@@ -580,7 +580,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     public function touch($id, $extraLifetime)
     {
         $ttl = $this->_redis->ttl(self::PREFIX_DATA . $id);
-        if ($ttl != -1) {
+        if ($ttl) {
             $expireAt = time() + $ttl + $extraLifetime;
             $result = $this->_redis->expireAt(self::PREFIX_DATA . $id, $expireAt);
             if($result) {
