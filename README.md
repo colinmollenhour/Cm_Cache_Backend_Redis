@@ -9,8 +9,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
  - Falls-back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
  - Tagging is fully supported, implemented using the Redis "set" and "hash" datatypes for efficient tag management.
- - Key expiry is handled automatically by Redis, and the cache is safe to use with allkeys-lru maxmemory-policy option.
- - Uses Redis pipelining for solid performance even with very large number of tags or ids per tag.
+ - Key expiry is handled automatically by Redis, and the cache is safe to use with the "allkeys-lru" maxmemory-policy config option.
  - Supports unix socket connection for even better performance on a single machine.
  - Unit tested!
 
@@ -46,10 +45,10 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## KNOWN ISSUES
 
- - Standalone mode on some environments appears to lose connection to Redis. Please provide details if you can reproduce this error!
- - In very rare circumstances it may be possible for a race-condition to cause tag data leaks. However, operations are
-   pipelined to reduce these risks greatly and cached data is not subject to corruption. As far as I know the risk is no
-   greater than with other backends.
+ - In very rare circumstances it may be possible for a race-condition to cause inconsistent tag data such as if one
+   process is removing a cache entry as another is adding it. However, operations are pipelined to reduce these risks
+   greatly and cached data is not subject to corruption. As far as I know the risk is no greater than with most other
+   backends.
 
 ## RELATED / TUNING
 
@@ -59,5 +58,6 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## Release Notes
 
+ - Mar 1, 2012: Using latest Credis_Client which adds auto-reconnect for standalone mode.
  - Feb 15, 2012: Changed from using separate keys for data, tags and mtime to a single hash per key.
  - Nov 10, 2011: Changed from using phpredis and redisent to Credis (which wraps phpredis). Implemented pipelining.
