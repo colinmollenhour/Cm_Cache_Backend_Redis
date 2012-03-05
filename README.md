@@ -11,14 +11,16 @@ Works with any Zend Framework project including all versions of Magento!
  - Tagging is fully supported, implemented using the Redis "set" and "hash" datatypes for efficient tag management.
  - Key expiry is handled automatically by Redis, and the cache is safe to use with the "allkeys-lru" maxmemory-policy config option.
  - Supports unix socket connection for even better performance on a single machine.
+ - Supports configurable zlib compression for memory savings. Can change configuration without flushing cache.
  - Unit tested!
 
 ## INSTALLATION (Magento)
 
  1. Install [redis](http://redis.io/download) (2.4+ required)
 
-   * The only recommended "maxmemory-policy" is "allkeys-lru". If you use a "volitile-*" policy the non-volatile keys
-     could push out all of the volatile keys so that volatile keys are constantly being pushed out.
+   * The recommended "maxmemory-policy" is "volatile-lru". All data keys are volatile and tag sets are not to prevent
+     tag data from being lost. Just be sure the "maxmemory" is high enough to accomodate all of the tag data with lots
+     of room left for the key data.
 
  2. Install [phpredis](https://github.com/nicolasff/phpredis)
 
@@ -40,6 +42,9 @@ Works with any Zend Framework project including all versions of Magento!
             <database>2</database>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
             <automatic_cleaning_factor>20000</automatic_cleaning_factor> <!-- 20000 is the default, 0 disables garbage collection -->
+            <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
+            <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
+            <compress_threshold>204800</compress_threshold>  <!-- Strings below this size will not be compressed -->
           </backend_options>
         </cache>
 
@@ -54,6 +59,10 @@ Works with any Zend Framework project including all versions of Magento!
 
  - Automatic cleaning is optional and not necessary, but recommended in cases with frequently changing tags and keys or
    infrequent tag cleaning.
+ - Compression will have additional CPU overhead but may be worth it for memory savings and reduced traffic. For high-latency
+   networks it may even improve performance. Most likely you will not want to use above level 1 compression. Use the
+   [Magento Cache Benchmark](https://github.com/colinmollenhour/magento-cache-benchmark) to analyze your real-world
+   performance and test your system's gz performance with different compression levels.
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
 
 ## Release Notes

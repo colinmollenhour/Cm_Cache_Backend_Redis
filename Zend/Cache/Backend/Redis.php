@@ -18,8 +18,8 @@
 class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
 {
 
-    const SET_IDS  = 'zc:ids';
-    const SET_TAGS = 'zc:tags';
+    const SET_IDS         = 'zc:ids';
+    const SET_TAGS        = 'zc:tags';
 
     const PREFIX_KEY      = 'zc:k:';
     const PREFIX_TAG_IDS  = 'zc:ti:';
@@ -27,12 +27,25 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     const FIELD_DATA      = 'd';
     const FIELD_MTIME     = 'm';
     const FIELD_TAGS      = 't';
+    const FIELD_INF       = 'i';
+
+    const MAX_LIFETIME    = 2592000; /* Redis backend limit */
+    const ZLIB_PREFIX     = "zc:\x1f\x8b";
 
     /** @var Credis_Client */
     protected $_redis;
 
     /** @var bool */
     protected $_notMatchingTags = FALSE;
+
+    /** @var int */
+    protected $_compressTags = 1;
+
+    /** @var int */
+    protected $_compressData = 1;
+
+    /** @var int */
+    protected $_compressThreshold = 20480;
 
     /**
      * Contruct Zend_Cache Redis backend
@@ -67,6 +80,18 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
             $this->_notMatchingTags = (bool) $options['notMatchingTags'];
         }
 
+        if ( isset($options['compress_tags'])) {
+            $this->_compressTags = (int) $options['compress_tags'];
+        }
+
+        if ( isset($options['compress_data'])) {
+            $this->_compressData = (int) $options['compress_data'];
+        }
+
+        if ( isset($options['compress_threshold'])) {
+            $this->_compressThreshold = (int) $options['compress_threshold'];
+        }
+
         if ( isset($options['automatic_cleaning_factor']) ) {
             $this->_options['automatic_cleaning_factor'] = (int) $options['automatic_cleaning_factor'];
         } else {
@@ -84,10 +109,10 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     public function load($id, $doNotTestCacheValidity = false)
     {
         $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
-        if($data === NULL) {
+        if ($data === NULL) {
             return FALSE;
         }
-        return $data;
+        return $this->_decodeData($data);
     }
 
     /**
@@ -121,22 +146,27 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         $lifetime = $this->getLifetime($specificLifetime);
 
         // Get list of tags previously assigned
-        $oldTags = explode(',', $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS));
+        $oldTags = explode(',', $this->_decodeData($this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS)));
 
         $this->_redis->pipeline();
 
         // Set the data
-        $this->_redis->hMSet(self::PREFIX_KEY.$id, array(
-          self::FIELD_DATA => $data,
-          self::FIELD_TAGS => implode(',',$tags),
+        $result = $this->_redis->hMSet(self::PREFIX_KEY.$id, array(
+          self::FIELD_DATA => $this->_encodeData($data, $this->_compressData),
+          self::FIELD_TAGS => $this->_encodeData(implode(',',$tags), $this->_compressTags),
           self::FIELD_MTIME => time(),
+          self::FIELD_INF => $lifetime ? 0 : 1,
         ));
-        if ($lifetime) {
-          $this->_redis->expire(self::PREFIX_KEY.$id, $lifetime);
+        if( ! $result) {
+            throw new CredisException("Could not set cache key $id");
         }
 
+        // Always expire so the volatile-* eviction policies may be safely used, otherwise
+        // there is a risk that tag data could be evicted.
+        $this->_redis->expire(self::PREFIX_KEY.$id, $lifetime ? $lifetime : self::MAX_LIFETIME);
+
         // Process added tags
-        if ($addTags = array_diff($tags, $oldTags))
+        if ($addTags = ($oldTags ? array_diff($tags, $oldTags) : $tags))
         {
             // Update the list with all the tags
             $this->_redis->sAdd( self::SET_TAGS, $addTags);
@@ -149,7 +179,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         }
 
         // Process removed tags
-        if ($remTags = array_diff($oldTags, $tags))
+        if ($remTags = ($oldTags ? array_diff($oldTags, $tags) : FALSE))
         {
             // Update the id list for each tag
             foreach($remTags as $tag)
@@ -177,7 +207,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     public function remove($id)
     {
         // Get list of tags for this id
-        $tags = explode(',', $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS));
+        $tags = explode(',', $this->_decodeData($this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS)));
 
         $this->_redis->pipeline();
 
@@ -199,6 +229,9 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         return (bool) $result[0];
     }
 
+    /**
+     * @param array $tags
+     */
     protected function _removeByNotMatchingTags($tags)
     {
         $ids = $this->getIdsNotMatchingTags($tags);
@@ -218,6 +251,9 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         }
     }
 
+    /**
+     * @param array $tags
+     */
     protected function _removeByMatchingTags($tags)
     {
         $ids = $this->getIdsMatchingTags($tags);
@@ -237,6 +273,9 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         }
     }
 
+    /**
+     * @param array $tags
+     */
     protected function _removeByMatchingAnyTags($tags)
     {
         $ids = $this->getIdsMatchingAnyTags($tags);
@@ -391,7 +430,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     {
         parent::setDirectives($directives);
         $lifetime = $this->getLifetime(false);
-        if ($lifetime > 2592000) {
+        if ($lifetime > self::MAX_LIFETIME) {
             Zend_Cache::throwException('Redis backend has a limit of 30 days (2592000 seconds) for the lifetime');
         }
     }
@@ -491,17 +530,17 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function getMetadatas($id)
     {
-        list($tags, $mtime) = $this->_redis->hMGet(self::PREFIX_KEY.$id, array(self::FIELD_TAGS, self::FIELD_MTIME));
+        list($tags, $mtime, $inf) = $this->_redis->hMGet(self::PREFIX_KEY.$id, array(self::FIELD_TAGS, self::FIELD_MTIME, self::FIELD_INF));
         if( ! $mtime) {
           return FALSE;
         }
-        $tags = explode(',', $tags);
-        $expire = time() + $this->_redis->ttl(self::PREFIX_KEY.$id);
+        $tags = explode(',', $this->_decodeData($tags));
+        $expire = $inf === '1' ? FALSE : time() + $this->_redis->ttl(self::PREFIX_KEY.$id);
 
         return array(
             'expire' => $expire,
-            'tags' => $tags, 
-            'mtime' => $mtime,
+            'tags'   => $tags,
+            'mtime'  => $mtime,
         );
     }
 
@@ -514,9 +553,9 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
      */
     public function touch($id, $extraLifetime)
     {
-        $ttl = $this->_redis->ttl(self::PREFIX_KEY.$id);
-        if ($ttl > 0) {
-            $expireAt = time() + $ttl + $extraLifetime;
+        list($inf) = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_INF);
+        if ($inf === '0') {
+            $expireAt = time() + $this->_redis->ttl(self::PREFIX_KEY.$id) + $extraLifetime;
             return (bool) $this->_redis->expireAt(self::PREFIX_KEY.$id, $expireAt);
         }
         return false;
@@ -548,25 +587,63 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
         );
     }
 
+    /**
+     * @param string $data
+     * @param int $level
+     * @return string
+     */
+    protected function _encodeData($data, $level)
+    {
+        if ($level && strlen($data) >= $this->_compressThreshold) {
+            $data = gzcompress($data, $level);
+            if( ! $data) {
+                throw new CredisException("Could not compress cache data.");
+            }
+            return self::ZLIB_PREFIX.$data;
+        }
+        return $data;
+    }
+
+    /**
+     * @param bool|string $data
+     * @return string
+     */
+    protected function _decodeData($data)
+    {
+        if (substr($data,0,5) == self::ZLIB_PREFIX) {
+            return gzuncompress(substr($data,5));
+        }
+        return $data;
+    }
+
+    /**
+     * @param $item
+     * @param $index
+     * @param $prefix
+     */
     protected function _preprocess(&$item, $index, $prefix)
     {
         $item = $prefix . $item;
     }
 
-    protected function _preprocessItems($items, $prefix)
-    {
-        array_walk( $items, array($this, '_preprocess'), $prefix);
-        return $items;
-    }
-
+    /**
+     * @param $ids
+     * @return array
+     */
     protected function _preprocessIds($ids)
     {
-        return $this->_preprocessItems($ids, self::PREFIX_KEY);
+        array_walk($ids, array($this, '_preprocess'), self::PREFIX_KEY);
+        return $ids;
     }
 
+    /**
+     * @param $tags
+     * @return array
+     */
     protected function _preprocessTagIds($tags)
     {
-        return $this->_preprocessItems($tags, self::PREFIX_TAG_IDS);
+        array_walk($tags, array($this, '_preprocess'), self::PREFIX_TAG_IDS);
+        return $tags;
     }
 
     /**
