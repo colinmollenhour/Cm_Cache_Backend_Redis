@@ -29,13 +29,13 @@ Works with any Zend Framework project including all versions of Magento!
 
  3. Install this module using [modman](http://code.google.com/p/module-manager/)
 
-   * `modman rediscache clone git://github.com/colinmollenhour/Zend_Cache_Backend_Redis.git`
+   * `modman rediscache clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
 
  4. Edit app/etc/local.xml to configure:
 
         <!-- this is a child node of config/global -->
         <cache>
-          <backend>Zend_Cache_Backend_Redis</backend>
+          <backend>Cm_Cache_Backend_Redis</backend>
           <backend_options>
             <server>127.0.0.1</server> <!-- or absolute path to unix socket for better performance -->
             <port>6379</port>

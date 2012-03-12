@@ -15,7 +15,7 @@
  * 
  * @author Colin Mollenhour
  */
-class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
+class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
 {
 
     const SET_IDS         = 'zc:ids';
@@ -50,7 +50,7 @@ class Zend_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_
     /**
      * Contruct Zend_Cache Redis backend
      * @param array $options
-     * @return \Zend_Cache_Backend_Redis
+     * @return \Cm_Cache_Backend_Redis
      */
     public function __construct($options = array())
     {

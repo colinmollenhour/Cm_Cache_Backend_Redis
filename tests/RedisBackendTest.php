@@ -18,17 +18,17 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
 
     protected $forceStandalone = FALSE;
 
-    /** @var Zend_Cache_Backend_Redis */
+    /** @var Cm_Cache_Backend_Redis */
     protected $_instance;
 
     public function __construct($name = null, array $data = array(), $dataName = '')
     {
-        parent::__construct('Zend_Cache_Backend_Redis', $data, $dataName);
+        parent::__construct('Cm_Cache_Backend_Redis', $data, $dataName);
     }
 
     public function setUp($notag = false)
     {
-        $this->_instance = new Zend_Cache_Backend_Redis(array(
+        $this->_instance = new Cm_Cache_Backend_Redis(array(
             'server' => '127.0.0.1',
             'port'   => '6379',
             'database' => '1',
