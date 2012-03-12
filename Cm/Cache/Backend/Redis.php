@@ -30,7 +30,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const FIELD_INF       = 'i';
 
     const MAX_LIFETIME    = 2592000; /* Redis backend limit */
-    const ZLIB_PREFIX     = "zc:\x1f\x8b";
+    const COMPRESS_PREFIX = ":\x1f\x8b";
 
     /** @var Credis_Client */
     protected $_redis;
@@ -46,6 +46,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
     /** @var int */
     protected $_compressThreshold = 20480;
+
+    /** @var string */
+    protected $_compressionLib;
 
     /**
      * Contruct Zend_Cache Redis backend
@@ -97,6 +100,20 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         } else {
             $this->_options['automatic_cleaning_factor'] = 20000;
         }
+
+        if ( isset($options['compression_lib']) ) {
+            $this->_compressionLib = $options['compression_lib'];
+        }
+        else if ( function_exists('snappy_compress') ) {
+            $this->_compressionLib = 'snappy';
+        }
+        else if ( function_exists('lzf_compress') ) {
+            $this->_compressionLib = 'lzf';
+        }
+        else {
+            $this->_compressionLib = 'gzip';
+        }
+        $this->_compressPrefix = substr($this->_compressionLib,0,2).self::COMPRESS_PREFIX;
     }
 
     /**
@@ -595,11 +612,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected function _encodeData($data, $level)
     {
         if ($level && strlen($data) >= $this->_compressThreshold) {
-            $data = gzcompress($data, $level);
+            switch($this->_compressionLib) {
+              case 'snappy': $data = snappy_compress($data); break;
+              case 'lzf':    $data = lzf_compress($data); break;
+              case 'gzip':   $data = gzcompress($data, $level); break;
+            }
             if( ! $data) {
                 throw new CredisException("Could not compress cache data.");
             }
-            return self::ZLIB_PREFIX.$data;
+            return $this->_compressPrefix.$data;
         }
         return $data;
     }
@@ -610,8 +631,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _decodeData($data)
     {
-        if (substr($data,0,5) == self::ZLIB_PREFIX) {
-            return gzuncompress(substr($data,5));
+        if (substr($data,2,3) == self::COMPRESS_PREFIX) {
+            switch(substr($data,0,2)) {
+                case 'sn': return snappy_uncompress(substr($data,5));
+                case 'lz': return lzf_decompress(substr($data,5));
+                case 'gz': case 'zc': return gzuncompress(substr($data,5));
+            }
         }
         return $data;
     }

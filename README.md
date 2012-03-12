@@ -11,7 +11,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Tagging is fully supported, implemented using the Redis "set" and "hash" datatypes for efficient tag management.
  - Key expiry is handled automatically by Redis, and the cache is safe to use with the "allkeys-lru" maxmemory-policy config option.
  - Supports unix socket connection for even better performance on a single machine.
- - Supports configurable zlib compression for memory savings. Can change configuration without flushing cache.
+ - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
  - Unit tested!
 
 ## INSTALLATION (Magento)
@@ -45,6 +45,7 @@ Works with any Zend Framework project including all versions of Magento!
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_threshold>204800</compress_threshold>  <!-- Strings below this size will not be compressed -->
+            <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
           </backend_options>
         </cache>
 
@@ -59,10 +60,13 @@ Works with any Zend Framework project including all versions of Magento!
 
  - Automatic cleaning is optional and not necessary, but recommended in cases with frequently changing tags and keys or
    infrequent tag cleaning.
- - Compression will have additional CPU overhead but may be worth it for memory savings and reduced traffic. For high-latency
-   networks it may even improve performance. Most likely you will not want to use above level 1 compression. Use the
+ - Compression will have additional CPU overhead but may be worth it for memory savings and reduced traffic.
+   For high-latency networks it may even improve performance. Use the
    [Magento Cache Benchmark](https://github.com/colinmollenhour/magento-cache-benchmark) to analyze your real-world
-   performance and test your system's gz performance with different compression levels.
+   compression performance and test your system's performance with different compression libraries.
+   - gzip - Slowest but highest compression. Most likely you will not want to use above level 1 compression.
+   - lzf - Fastest compress, fast decompress. Install: `sudo pecl install lzf`
+   - snappy - Fastest decompress, fast compress. Download and install: [snappy](http://code.google.com/p/snappy/) and [php-snappy](http://code.google.com/p/php-snappy/)
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
 
 ## Release Notes
