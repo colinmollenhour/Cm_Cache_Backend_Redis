@@ -7,7 +7,7 @@
 require_once 'app/Mage.php';
 
 require_once 'Zend/Cache.php';
-require_once 'Zend/Cache/Backend/Redis.php';
+require_once 'Cm/Cache/Backend/Redis.php';
 
 /**
  * Common tests for backends
@@ -34,6 +34,8 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'database' => '1',
             'notMatchingTags' => TRUE,
             'force_standalone' => $this->forceStandalone,
+            'compress_threshold' => 100,
+            'compression_lib' => 'gzip',
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
         parent::setUp($notag);
@@ -53,6 +55,13 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
     public function testGetWithAnExpiredCacheId()
     {
         // not supported
+    }
+
+    public function testCompression()
+    {
+        $longString = str_repeat(md5('asd')."\r\n", 50);
+        $this->assertTrue($this->_instance->save($longString, 'long', array('long')));
+        $this->assertTrue($this->_instance->load('long') == $longString);
     }
 
     public function testExpiredCleanup()
