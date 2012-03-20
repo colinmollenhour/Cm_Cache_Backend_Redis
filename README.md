@@ -29,7 +29,7 @@ Works with any Zend Framework project including all versions of Magento!
 
  3. Install this module using [modman](http://code.google.com/p/module-manager/)
 
-   * `modman rediscache clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
+   * `modman clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
 
  4. Edit app/etc/local.xml to configure:
 
