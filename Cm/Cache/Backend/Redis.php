@@ -165,7 +165,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         // Get list of tags previously assigned
         $oldTags = explode(',', $this->_decodeData($this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS)));
 
-        $this->_redis->pipeline();
+        $this->_redis->pipeline()->multi();
 
         // Set the data
         $result = $this->_redis->hMSet(self::PREFIX_KEY.$id, array(
@@ -226,7 +226,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         // Get list of tags for this id
         $tags = explode(',', $this->_decodeData($this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS)));
 
-        $this->_redis->pipeline();
+        $this->_redis->pipeline()->multi();
 
         // Remove data
         $this->_redis->del(self::PREFIX_KEY.$id);
@@ -254,7 +254,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $ids = $this->getIdsNotMatchingTags($tags);
         if($ids)
         {
-            $this->_redis->pipeline();
+            $this->_redis->pipeline()->multi();
 
             // Remove data
             $this->_redis->del( $this->_preprocessIds($ids));
@@ -276,7 +276,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $ids = $this->getIdsMatchingTags($tags);
         if($ids)
         {
-            $this->_redis->pipeline();
+            $this->_redis->pipeline()->multi();
 
             // Remove data
             $this->_redis->del( $this->_preprocessIds($ids));
@@ -297,7 +297,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     {
         $ids = $this->getIdsMatchingAnyTags($tags);
 
-        $this->_redis->pipeline();
+        $this->_redis->pipeline()->multi();
 
         if($ids)
         {

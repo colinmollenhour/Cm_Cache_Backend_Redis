@@ -12,6 +12,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Key expiry is handled automatically by Redis, and the cache is safe to use with the "allkeys-lru" maxmemory-policy config option.
  - Supports unix socket connection for even better performance on a single machine.
  - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
+ - Uses transactions to prevent race conditions between saves, cleans or removes causing unexpected results.
  - Unit tested!
 
 ## INSTALLATION (Magento)
@@ -48,13 +49,6 @@ Works with any Zend Framework project including all versions of Magento!
             <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
           </backend_options>
         </cache>
-
-## KNOWN ISSUES
-
- - In very rare circumstances it may be possible for a race-condition to cause inconsistent tag data such as if one
-   process is removing a cache entry as another is adding it. However, operations are pipelined to reduce these risks
-   greatly and cached data is not subject to corruption. As far as I know the risk is no greater than with most other
-   backends.
 
 ## RELATED / TUNING
 
