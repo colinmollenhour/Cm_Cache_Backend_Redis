@@ -39,7 +39,7 @@ Works with any Zend Framework project including all versions of Magento!
           <backend_options>
             <server>127.0.0.1</server> <!-- or absolute path to unix socket for better performance -->
             <port>6379</port>
-            <database>2</database>
+            <database>0</database>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
             <automatic_cleaning_factor>20000</automatic_cleaning_factor> <!-- 20000 is the default, 0 disables garbage collection -->
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
