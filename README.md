@@ -45,7 +45,7 @@ Works with any Zend Framework project including all versions of Magento!
             <automatic_cleaning_factor>20000</automatic_cleaning_factor> <!-- 20000 is the default, 0 disables garbage collection -->
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
-            <compress_threshold>204800</compress_threshold>  <!-- Strings below this size will not be compressed -->
+            <compress_threshold>20480</compress_threshold>  <!-- Strings below this size will not be compressed -->
             <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
           </backend_options>
         </cache>
