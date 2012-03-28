@@ -98,7 +98,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ( isset($options['automatic_cleaning_factor']) ) {
             $this->_options['automatic_cleaning_factor'] = (int) $options['automatic_cleaning_factor'];
         } else {
-            $this->_options['automatic_cleaning_factor'] = 20000;
+            $this->_options['automatic_cleaning_factor'] = 0;
         }
 
         if ( isset($options['compression_lib']) ) {
