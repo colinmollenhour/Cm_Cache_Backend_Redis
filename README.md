@@ -28,7 +28,7 @@ Works with any Zend Framework project including all versions of Magento!
    * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19.
    * phpredis is optional, but it is much faster than standalone mode
 
- 3. Install this module using [modman](http://code.google.com/p/module-manager/)
+ 3. Install this module using [modman](https://github.com/colinmollenhour/modman)
 
    * `modman clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
 
