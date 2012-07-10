@@ -41,6 +41,7 @@ Works with any Zend Framework project including all versions of Magento!
             <server>127.0.0.1</server> <!-- or absolute path to unix socket for better performance -->
             <port>6379</port>
             <database>0</database>
+            <password></password>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
             <automatic_cleaning_factor>0</automatic_cleaning_factor> <!-- Disabled by default -->
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
@@ -65,6 +66,7 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## Release Notes
 
+ - July 10, 2012: Added password authentication support.
  - Mar 1, 2012: Using latest Credis_Client which adds auto-reconnect for standalone mode.
  - Feb 15, 2012: Changed from using separate keys for data, tags and mtime to a single hash per key.
  - Nov 10, 2011: Changed from using phpredis and redisent to Credis (which wraps phpredis). Implemented pipelining.

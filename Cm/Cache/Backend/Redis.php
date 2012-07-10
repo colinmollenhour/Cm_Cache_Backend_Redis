@@ -75,6 +75,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
           $this->_redis->forceStandalone();
         }
 
+        if ( ! empty($options['password'])) {
+            $this->_redis->auth($options['password']) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
+        }
+
         if ( ! empty($options['database'])) {
             $this->_redis->select( (int) $options['database']) or Zend_Cache::throwException('The redis database could not be selected.');
         }
