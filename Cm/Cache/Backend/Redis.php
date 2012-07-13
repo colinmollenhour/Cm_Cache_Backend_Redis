@@ -158,6 +158,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      * @param  string $id               Cache id
      * @param  array  $tags             Array of strings, the cache record will be tagged by each string entry
      * @param  bool|int $specificLifetime If != false, set a specific lifetime for this cache record (null => infinite lifetime)
+     * @throws CredisException
      * @return boolean True if no problem
      */
     public function save($data, $id, $tags = array(), $specificLifetime = false)
@@ -167,7 +168,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $lifetime = $this->getLifetime($specificLifetime);
 
         // Get list of tags previously assigned
-        $oldTags = explode(',', $this->_decodeData($this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS)));
+        $oldTags = $this->_decodeData($this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS));
+        $oldTags = $oldTags ? explode(',', $oldTags) : array();
 
         $this->_redis->pipeline()->multi();
 
