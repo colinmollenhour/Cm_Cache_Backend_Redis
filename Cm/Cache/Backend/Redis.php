@@ -66,14 +66,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         if( isset($options['timeout'])) {
-          $this->_redis = new Credis_Client($options['server'], $options['port'], $options['timeout']);
+            $this->_redis = new Credis_Client($options['server'], $options['port'], $options['timeout']);
         } else {
-          $this->_redis = new Credis_Client($options['server'], $options['port']);
+            $this->_redis = new Credis_Client($options['server'], $options['port']);
         }
 
         if ( isset($options['force_standalone']) && $options['force_standalone']) {
-          $this->_redis->forceStandalone();
+            $this->_redis->forceStandalone();
         }
+
+        $this->_redis->setMaxConnectRetries(isset($options['connect_retries']) ? (int) $options['connect_retries'] : 1);
 
         if ( ! empty($options['password'])) {
             $this->_redis->auth($options['password']) or Zend_Cache::throwException('Unable to authenticate with the redis server.');

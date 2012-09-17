@@ -43,6 +43,7 @@ Works with any Zend Framework project including all versions of Magento!
             <database>0</database>
             <password></password>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
+            <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
             <automatic_cleaning_factor>0</automatic_cleaning_factor> <!-- Disabled by default -->
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
@@ -66,6 +67,7 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## Release Notes
 
+ - September 17, 2012: Added connect_retries option (default: 1) to prevent errors from random connection failures.
  - July 10, 2012: Added password authentication support.
  - Mar 1, 2012: Using latest Credis_Client which adds auto-reconnect for standalone mode.
  - Feb 15, 2012: Changed from using separate keys for data, tags and mtime to a single hash per key.
