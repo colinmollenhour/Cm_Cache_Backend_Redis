@@ -39,6 +39,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_notMatchingTags = FALSE;
 
     /** @var int */
+    protected $_persistent = 0;
+    
+    /** @var int */
+    protected $_lifetimelimit    = 2592000; /* Redis backend limit */
+    
+    /** @var int */
     protected $_compressTags = 1;
 
     /** @var int */
@@ -65,10 +71,13 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             Zend_Cache::throwException('Redis \'port\' not specified.');
         }
 
+        if ( isset($options['persistent']) ) {
+            $this->_persistent = (int) $options['persistent'];
+        }
         if( isset($options['timeout'])) {
-            $this->_redis = new Credis_Client($options['server'], $options['port'], $options['timeout']);
+            $this->_redis = new Credis_Client($options['server'], $options['port'], $options['timeout'], $this->_persistent);
         } else {
-            $this->_redis = new Credis_Client($options['server'], $options['port']);
+            $this->_redis = new Credis_Client($options['server'], $options['port'], 2.5, $this->_persistent);
         }
 
         if ( isset($options['force_standalone']) && $options['force_standalone']) {
@@ -97,6 +106,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_compressData = (int) $options['compress_data'];
         }
 
+        if ( isset($options['lifetimelimit'])) {
+            $this->_lifetimelimit = (int) $options['lifetimelimit'];
+        }
+        
         if ( isset($options['compress_threshold'])) {
             $this->_compressThreshold = (int) $options['compress_threshold'];
         }
@@ -188,7 +201,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         // Always expire so the volatile-* eviction policies may be safely used, otherwise
         // there is a risk that tag data could be evicted.
-        $this->_redis->expire(self::PREFIX_KEY.$id, $lifetime ? $lifetime : self::MAX_LIFETIME);
+        $this->_redis->expire(self::PREFIX_KEY.$id, $lifetime ? $lifetime : $this->_lifetimelimit);
 
         // Process added tags
         if ($addTags = ($oldTags ? array_diff($tags, $oldTags) : $tags))
