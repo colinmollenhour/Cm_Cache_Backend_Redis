@@ -336,9 +336,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         {
             // Get list of expired ids for each tag
             $tagMembers = $this->_redis->sMembers(self::PREFIX_TAG_IDS . $tag);
+            $numTagMembers = count($tagMembers);
             $expired = array();
             if(count($tagMembers)) {
-                foreach($tagMembers as $id) {
+                while ($id = array_pop($tagMembers)) {
                     if( ! isset($exists[$id])) {
                         $exists[$id] = $this->_redis->exists(self::PREFIX_KEY.$id);
                     }
@@ -352,7 +353,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_redis->pipeline();
 
             // Remove empty tags or completely expired tags
-            if( ! count($tagMembers) || count($expired) == count($tagMembers)) {
+            if( ! $numTagMembers || count($expired) == $numTagMembers) {
                 $this->_redis->del(self::PREFIX_TAG_IDS . $tag);
                 $this->_redis->sRem(self::SET_TAGS, $tag);
             }
@@ -360,7 +361,6 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             else {
                 $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $expired);
             }
-            unset($tagMembers);
 
             // Clean up expired ids from ids set
             if($this->_notMatchingTags) {
