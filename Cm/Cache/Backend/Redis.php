@@ -360,11 +360,13 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             else {
                 $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $expired);
             }
+            unset($tagMembers);
 
             // Clean up expired ids from ids set
             if($this->_notMatchingTags) {
                 $this->_redis->sRem( self::SET_IDS, $expired);
             }
+            unset($expired);
 
             $this->_redis->exec();
         }
