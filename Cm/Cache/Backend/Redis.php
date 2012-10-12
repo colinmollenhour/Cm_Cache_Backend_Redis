@@ -327,6 +327,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $this->_redis->exec();
     }
 
+    /**
+     * Clean up tag id lists since as keys expire the ids remain in the tag id lists
+     */
     protected function _collectGarbage()
     {
         // Clean up expired keys from tag id set and global id set
@@ -338,37 +341,45 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $tagMembers = $this->_redis->sMembers(self::PREFIX_TAG_IDS . $tag);
             $numTagMembers = count($tagMembers);
             $expired = array();
-            if(count($tagMembers)) {
+            $numExpired = $numNotExpired = 0;
+            if($numTagMembers) {
                 while ($id = array_pop($tagMembers)) {
                     if( ! isset($exists[$id])) {
                         $exists[$id] = $this->_redis->exists(self::PREFIX_KEY.$id);
                     }
-                    if( ! $exists[$id]) {
+                    if ($exists[$id]) {
+                        $numNotExpired++;
+                    }
+                    else {
+                        $numExpired++;
                         $expired[] = $id;
+
+                        // Remove incrementally to reduce memory usage
+                        if (count($expired) % 100 == 0 && $numNotExpired > 0) {
+                            $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $expired);
+                            if($this->_notMatchingTags) { // Clean up expired ids from ids set
+                                $this->_redis->sRem( self::SET_IDS, $expired);
+                            }
+                            $expired = array();
+                        }
                     }
                 }
                 if( ! count($expired)) continue;
             }
 
-            $this->_redis->pipeline();
-
             // Remove empty tags or completely expired tags
-            if( ! $numTagMembers || count($expired) == $numTagMembers) {
+            if ($numExpired == $numTagMembers) {
                 $this->_redis->del(self::PREFIX_TAG_IDS . $tag);
                 $this->_redis->sRem(self::SET_TAGS, $tag);
             }
             // Clean up expired ids from tag ids set
-            else {
+            else if (count($expired)) {
                 $this->_redis->sRem( self::PREFIX_TAG_IDS . $tag, $expired);
-            }
-
-            // Clean up expired ids from ids set
-            if($this->_notMatchingTags) {
-                $this->_redis->sRem( self::SET_IDS, $expired);
+                if($this->_notMatchingTags) { // Clean up expired ids from ids set
+                    $this->_redis->sRem( self::SET_IDS, $expired);
+                }
             }
             unset($expired);
-
-            $this->_redis->exec();
         }
 
         // Clean up global list of ids for ids with no tag

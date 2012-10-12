@@ -54,8 +54,10 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## RELATED / TUNING
 
- - Automatic cleaning is optional and not necessary, but recommended in cases with frequently changing tags and keys or
-   infrequent tag cleaning.
+ - Automatic cleaning is optional and not recommended since it is slow and uses lots of memory.
+ - Occasional (e.g. once a day) garbage collection is recommended if the entire cache is infrequently cleared and
+   automatic cleaning is not enabled. The nest solution is to run a cron job which does the garbage collection.
+   (See "Example Garbage Collection Script" below.)
  - Compression will have additional CPU overhead but may be worth it for memory savings and reduced traffic.
    For high-latency networks it may even improve performance. Use the
    [Magento Cache Benchmark](https://github.com/colinmollenhour/magento-cache-benchmark) to analyze your real-world
@@ -65,8 +67,20 @@ Works with any Zend Framework project including all versions of Magento!
    - snappy - Fastest decompress, fast compress. Download and install: [snappy](http://code.google.com/p/snappy/) and [php-snappy](http://code.google.com/p/php-snappy/)
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
 
+### Example Garbage Collection Script (Magento)
+
+    <?php
+    count($argc) or die('<pre>:P</pre>');
+    ini_set('memory_limit','1024M');
+    set_time_limit(0);
+    error_reporting(E_ALL | E_STRICT);
+    require_once 'app/Mage.php'
+    Mage::app('admin');
+    Mage::app()->getCache()->getBackend()->clean('old');
+
 ## Release Notes
 
+ - October 12, 2012: Improved memory usage and efficiency of garbage collection and updated recommendation.
  - September 17, 2012: Added connect_retries option (default: 1) to prevent errors from random connection failures.
  - July 10, 2012: Added password authentication support.
  - Mar 1, 2012: Using latest Credis_Client which adds auto-reconnect for standalone mode.
