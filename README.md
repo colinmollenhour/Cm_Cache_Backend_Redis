@@ -56,7 +56,7 @@ Works with any Zend Framework project including all versions of Magento!
 
  - Automatic cleaning is optional and not recommended since it is slow and uses lots of memory.
  - Occasional (e.g. once a day) garbage collection is recommended if the entire cache is infrequently cleared and
-   automatic cleaning is not enabled. The nest solution is to run a cron job which does the garbage collection.
+   automatic cleaning is not enabled. The best solution is to run a cron job which does the garbage collection.
    (See "Example Garbage Collection Script" below.)
  - Compression will have additional CPU overhead but may be worth it for memory savings and reduced traffic.
    For high-latency networks it may even improve performance. Use the
@@ -69,13 +69,11 @@ Works with any Zend Framework project including all versions of Magento!
 
 ### Example Garbage Collection Script (Magento)
 
-    <?php
-    count($argc) or die('<pre>:P</pre>');
+    <?php count($argc) or die('<pre>:P</pre>');
     ini_set('memory_limit','1024M');
     set_time_limit(0);
     error_reporting(E_ALL | E_STRICT);
     require_once 'app/Mage.php'
-    Mage::app('admin');
     Mage::app()->getCache()->getBackend()->clean('old');
 
 ## Release Notes
