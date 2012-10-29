@@ -512,7 +512,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function getIdsMatchingTags($tags = array())
     {
-        return (array) $this->_redis->sInter( $this->_preprocessTagIds($tags) );
+        if ($tags) {
+            return (array) $this->_redis->sInter( $this->_preprocessTagIds($tags) );
+        }
+        return array();
     }
 
     /**
@@ -528,7 +531,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if( ! $this->_notMatchingTags) {
             Zend_Cache::throwException("notMatchingTags is currently disabled.");
         }
-        return (array) $this->_redis->sDiff( self::SET_IDS, $this->_preprocessTagIds($tags) );
+        if ($tags) {
+            return (array) $this->_redis->sDiff( self::SET_IDS, $this->_preprocessTagIds($tags) );
+        }
+        return (array) $this->_redis->sMembers( self::SET_IDS );
     }
 
     /**
@@ -541,7 +547,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function getIdsMatchingAnyTags($tags = array())
     {
-        return (array) $this->_redis->sUnion( $this->_preprocessTagIds($tags));
+        if ($tags) {
+            return (array) $this->_redis->sUnion( $this->_preprocessTagIds($tags));
+        }
+        return array();
     }
 
     /**
@@ -628,6 +637,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /**
      * @param string $data
      * @param int $level
+     * @throws CredisException
      * @return string
      */
     protected function _encodeData($data, $level)
