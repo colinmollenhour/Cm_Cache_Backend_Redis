@@ -31,6 +31,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
     const MAX_LIFETIME    = 2592000; /* Redis backend limit */
     const COMPRESS_PREFIX = ":\x1f\x8b";
+    const DEFAULT_CONNECT_TIMEOUT = 2.5;
+    const DEFAULT_CONNECT_RETRIES = 1;
 
     /** @var Credis_Client */
     protected $_redis;
@@ -39,11 +41,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_notMatchingTags = FALSE;
 
     /** @var int */
-    protected $_persistent = 0;
-    
-    /** @var int */
-    protected $_lifetimelimit    = 2592000; /* Redis backend limit */
-    
+    protected $_lifetimelimit = self::MAX_LIFETIME; /* Redis backend limit */
+
     /** @var int */
     protected $_compressTags = 1;
 
@@ -71,20 +70,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             Zend_Cache::throwException('Redis \'port\' not specified.');
         }
 
-        if ( isset($options['persistent']) ) {
-            $this->_persistent = (int) $options['persistent'];
-        }
-        if( isset($options['timeout'])) {
-            $this->_redis = new Credis_Client($options['server'], $options['port'], $options['timeout'], $this->_persistent);
-        } else {
-            $this->_redis = new Credis_Client($options['server'], $options['port'], 2.5, $this->_persistent);
-        }
+        $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
+        $persistent = isset($options['persistent']) ? $options['persistent'] : '';
+        $this->_redis = new Credis_Client($options['server'], $options['port'], $timeout, $persistent);
 
         if ( isset($options['force_standalone']) && $options['force_standalone']) {
             $this->_redis->forceStandalone();
         }
 
-        $this->_redis->setMaxConnectRetries(isset($options['connect_retries']) ? (int) $options['connect_retries'] : 1);
+        $connectRetries = isset($options['connect_retries']) ? (int)$options['connect_retries'] : self::DEFAULT_CONNECT_RETRIES;
+        $this->_redis->setMaxConnectRetries($connectRetries);
 
         if ( ! empty($options['password'])) {
             $this->_redis->auth($options['password']) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
@@ -107,7 +102,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         if ( isset($options['lifetimelimit'])) {
-            $this->_lifetimelimit = (int) $options['lifetimelimit'];
+            $this->_lifetimelimit = (int) min($options['lifetimelimit'], self::MAX_LIFETIME);
         }
         
         if ( isset($options['compress_threshold'])) {

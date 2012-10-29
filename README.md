@@ -38,8 +38,9 @@ Works with any Zend Framework project including all versions of Magento!
         <cache>
           <backend>Cm_Cache_Backend_Redis</backend>
           <backend_options>
-            <server>127.0.0.1</server> <!-- or absolute path to unix socket for better performance -->
+            <server>127.0.0.1</server> <!-- or absolute path to unix socket -->
             <port>6379</port>
+            <persistent></persistent> <!-- Specify a unique string like "cache-db0" to enable persistent connections. -->
             <database>0</database>
             <password></password>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
@@ -66,6 +67,8 @@ Works with any Zend Framework project including all versions of Magento!
    - lzf - Fastest compress, fast decompress. Install: `sudo pecl install lzf`
    - snappy - Fastest decompress, fast compress. Download and install: [snappy](http://code.google.com/p/snappy/) and [php-snappy](http://code.google.com/p/php-snappy/)
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
+ - Enable persistent connections. Make sure that if you have multiple configurations connecting the persistent
+   string is unique for each configuration so that "select" commands don't cause conflicts.
 
 ### Example Garbage Collection Script (Magento)
 
@@ -78,6 +81,7 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## Release Notes
 
+ - October 29, 2012: Added support for persistent connections. (Thanks samm-git!)
  - October 12, 2012: Improved memory usage and efficiency of garbage collection and updated recommendation.
  - September 17, 2012: Added connect_retries option (default: 1) to prevent errors from random connection failures.
  - July 10, 2012: Added password authentication support.
