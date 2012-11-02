@@ -52,6 +52,26 @@ Works with any Zend Framework project including all versions of Magento!
             <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
           </backend_options>
         </cache>
+        
+        <!-- this is a child node of config/global for Magento Enterprise FPC -->
+        <full_page_cache>
+          <backend>Cm_Cache_Backend_Redis</backend>
+          <backend_options>
+            <server>127.0.0.1</server> <!-- or absolute path to unix socket -->
+            <port>6379</port>
+            <persistent></persistent> <!-- Specify a unique string like "cache-db0" to enable persistent connections. -->
+            <database>1</database> <!-- Separate database 1 to keep FPC separately -->
+            <password></password>
+            <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
+            <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
+            <automatic_cleaning_factor>0</automatic_cleaning_factor> <!-- Disabled by default -->
+            <lifetimelimit>57600<lifetimelimit> <!-- 16 hours of lifetime for cache record -->
+            <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
+            <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
+            <compress_threshold>20480</compress_threshold>  <!-- Strings below this size will not be compressed -->
+            <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
+          </backend_options>
+        </full_page_cache>
 
 ## RELATED / TUNING
 
