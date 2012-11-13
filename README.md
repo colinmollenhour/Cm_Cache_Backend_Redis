@@ -64,7 +64,7 @@ Works with any Zend Framework project including all versions of Magento!
             <password></password>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
             <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
-            <lifetimelimit>57600<lifetimelimit>     <!-- 16 hours of lifetime for cache record -->
+            <lifetimelimit>57600</lifetimelimit>    <!-- 16 hours of lifetime for cache record -->
             <compress_data>0</compress_data>        <!-- DISABLE compression for EE FPC since it already uses compression -->
           </backend_options>
         </full_page_cache>
