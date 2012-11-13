@@ -104,3 +104,8 @@ Works with any Zend Framework project including all versions of Magento!
  - Mar 1, 2012: Using latest Credis_Client which adds auto-reconnect for standalone mode.
  - Feb 15, 2012: Changed from using separate keys for data, tags and mtime to a single hash per key.
  - Nov 10, 2011: Changed from using phpredis and redisent to Credis (which wraps phpredis). Implemented pipelining.
+
+```
+@copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
+This project is licensed under the "New BSD" license (see source).
+```
