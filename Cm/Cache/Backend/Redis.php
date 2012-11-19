@@ -100,6 +100,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $connectRetries = isset($options['connect_retries']) ? (int)$options['connect_retries'] : self::DEFAULT_CONNECT_RETRIES;
         $this->_redis->setMaxConnectRetries($connectRetries);
 
+        if ( ! empty($options['read_timeout']) && $options['read_timeout'] > 0) {
+            $this->_redis->setReadTimeout((float) $options['read_timeout']);
+        }
+
         if ( ! empty($options['password'])) {
             $this->_redis->auth($options['password']) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
         }

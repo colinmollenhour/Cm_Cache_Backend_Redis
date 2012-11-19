@@ -23,10 +23,12 @@ Works with any Zend Framework project including all versions of Magento!
      tag data from being lost. Just be sure the "maxmemory" is high enough to accomodate all of the tag data with lots
      of room left for the key data.
 
- 2. Install [phpredis](https://github.com/nicolasff/phpredis)
+ 2. Install [phpredis](https://github.com/nicolasff/phpredis) (optional)
 
-   * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19.
+   * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19, 2011.
    * phpredis is optional, but it is much faster than standalone mode
+   * phpredis does not support setting read timeouts at the moment (see pull request #260). If you receive read errors, this
+     might be the reason.
 
  3. Install this module using [modman](https://github.com/colinmollenhour/modman)
 
@@ -45,6 +47,7 @@ Works with any Zend Framework project including all versions of Magento!
             <password></password>
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
             <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
+            <read_timeout>10</read_timeout>         <!-- Set read timeout duration -->
             <automatic_cleaning_factor>0</automatic_cleaning_factor> <!-- Disabled by default -->
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
@@ -97,6 +100,7 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## Release Notes
 
+ - November 19, 2012: Added read_timeout option. (Feature only supported in standalone mode, will be supported by phpredis when pull request #260 is merged)
  - October 29, 2012: Added support for persistent connections. (Thanks samm-git!)
  - October 12, 2012: Improved memory usage and efficiency of garbage collection and updated recommendation.
  - September 17, 2012: Added connect_retries option (default: 1) to prevent errors from random connection failures.
