@@ -88,6 +88,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
  - Enable persistent connections. Make sure that if you have multiple configurations connecting the persistent
    string is unique for each configuration so that "select" commands don't cause conflicts.
+ - Use the stats.php script to inspect your cache to find oversized or wasteful cache tags.
 
 ### Example Garbage Collection Script (Magento)
 
