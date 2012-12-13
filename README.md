@@ -55,7 +55,7 @@ Works with any Zend Framework project including all versions of Magento!
             <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
           </backend_options>
         </cache>
-        
+
         <!-- This is a child node of config/global for Magento Enterprise FPC -->
         <full_page_cache>
           <backend>Cm_Cache_Backend_Redis</backend>
@@ -98,6 +98,8 @@ Works with any Zend Framework project including all versions of Magento!
     error_reporting(E_ALL | E_STRICT);
     require_once 'app/Mage.php'
     Mage::app()->getCache()->getBackend()->clean('old');
+    // uncomment this for Magento Enterprise Edition
+    // Enterprise_PageCache_Model_Cache::getCacheInstance()->getFrontend()->getBackend()->clean('old');
 
 ## Release Notes
 
