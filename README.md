@@ -96,7 +96,7 @@ Works with any Zend Framework project including all versions of Magento!
     ini_set('memory_limit','1024M');
     set_time_limit(0);
     error_reporting(E_ALL | E_STRICT);
-    require_once 'app/Mage.php'
+    require_once 'app/Mage.php';
     Mage::app()->getCache()->getBackend()->clean('old');
     // uncomment this for Magento Enterprise Edition
     // Enterprise_PageCache_Model_Cache::getCacheInstance()->getFrontend()->getBackend()->clean('old');
