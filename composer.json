@@ -10,6 +10,6 @@
         }
     ],
     "require":{
-        "magento-hackathon/magento-composer-installer":"dev-master"
+        "magento-hackathon/magento-composer-installer":"*"
     }
 }
