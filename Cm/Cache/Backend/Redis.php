@@ -108,9 +108,11 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_redis->auth($options['password']) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
         }
 
+        // Always select database on startup in case persistent connection is re-used by other code
         if ( ! empty($options['database'])) {
-            $this->_redis->select( (int) $options['database']) or Zend_Cache::throwException('The redis database could not be selected.');
+            $options['database'] = 0;
         }
+        $this->_redis->select( (int) $options['database']) or Zend_Cache::throwException('The redis database could not be selected.');
 
         if ( isset($options['notMatchingTags']) ) {
             $this->_notMatchingTags = (bool) $options['notMatchingTags'];
