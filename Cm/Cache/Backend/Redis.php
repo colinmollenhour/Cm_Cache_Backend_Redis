@@ -109,7 +109,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         // Always select database on startup in case persistent connection is re-used by other code
-        if ( ! empty($options['database'])) {
+        if (empty($options['database'])) {
             $options['database'] = 0;
         }
         $this->_redis->select( (int) $options['database']) or Zend_Cache::throwException('The redis database could not be selected.');
