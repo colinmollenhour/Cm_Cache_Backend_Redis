@@ -200,7 +200,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function save($data, $id, $tags = array(), $specificLifetime = false)
     {
-        if(!is_array($tags)) $tags = array($tags);
+        if ( ! is_array($tags)) $tags = $tags ? array($tags) : array();
 
         $lifetime = $this->getLifetime($specificLifetime);
 
@@ -226,13 +226,13 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $this->_redis->expire(self::PREFIX_KEY.$id, $lifetime ? $lifetime : $this->_lifetimelimit);
 
         // Process added tags
-        if ($addTags = ($oldTags ? array_diff($tags, $oldTags) : $tags))
+        if ($tags)
         {
             // Update the list with all the tags
-            $this->_redis->sAdd( self::SET_TAGS, $addTags);
+            $this->_redis->sAdd( self::SET_TAGS, $tags);
 
             // Update the id list for each tag
-            foreach($addTags as $tag)
+            foreach($tags as $tag)
             {
                 $this->_redis->sAdd(self::PREFIX_TAG_IDS . $tag, $id);
             }
