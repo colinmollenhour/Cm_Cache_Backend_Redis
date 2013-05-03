@@ -2,7 +2,7 @@
 /*
 ==New BSD License==
 
-Copyright (c) 2012, Colin Mollenhour
+Copyright (c) 2013, Colin Mollenhour
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -15,6 +15,7 @@ modification, are permitted provided that the following conditions are met:
       documentation and/or other materials provided with the distribution.
     * The name of Colin Mollenhour may not be used to endorse or promote products
       derived from this software without specific prior written permission.
+    * The class name must remain as Cm_Cache_Backend_Redis.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,8 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Redis adapter for Zend_Cache
  *
- * @copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
+ * @copyright  Copyright (c) 2013 Colin Mollenhour (http://colin.mollenhour.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
+ * @author     Colin Mollenhour (http://colin.mollenhour.com)
  */
 class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
 {
