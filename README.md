@@ -9,7 +9,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
  - Falls-back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
  - Tagging is fully supported, implemented using the Redis "set" and "hash" datatypes for efficient tag management.
- - Key expiry is handled automatically by Redis, and the cache is safe to use with the "allkeys-lru" maxmemory-policy config option.
+ - Key expiration is handled automatically by Redis.
  - Supports unix socket connection for even better performance on a single machine.
  - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
  - Uses transactions to prevent race conditions between saves, cleans or removes causing unexpected results.
@@ -18,11 +18,6 @@ Works with any Zend Framework project including all versions of Magento!
 ## INSTALLATION (Magento)
 
  1. Install [redis](http://redis.io/download) (2.4+ required)
-
-   * The recommended "maxmemory-policy" is "volatile-lru". All data keys are volatile and tag sets are not to prevent
-     tag data from being lost. Just be sure the "maxmemory" is high enough to accomodate all of the tag data with lots
-     of room left for the key data.
-
  2. Install [phpredis](https://github.com/nicolasff/phpredis) (optional)
 
    * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19, 2011.
@@ -74,6 +69,10 @@ Works with any Zend Framework project including all versions of Magento!
 
 ## RELATED / TUNING
 
+ - The recommended "maxmemory-policy" is "volatile-lru". All tag metadata is non-volatile so it is
+   recommended to use key expirations unless non-volatile keys are absolutely necessary so that tag
+   data cannot get evicted. So, be sure that the "maxmemory" is high enough to accommodate all of
+   the tag data and non-volatile data with enough room left for the volatile key data as well.
  - Automatic cleaning is optional and not recommended since it is slow and uses lots of memory.
  - Occasional (e.g. once a day) garbage collection is recommended if the entire cache is infrequently cleared and
    automatic cleaning is not enabled. The best solution is to run a cron job which does the garbage collection.

@@ -221,9 +221,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             throw new CredisException("Could not set cache key $id");
         }
 
-        // Always expire so the volatile-* eviction policies may be safely used, otherwise
-        // there is a risk that tag data could be evicted.
-        $this->_redis->expire(self::PREFIX_KEY.$id, $lifetime ? $lifetime : $this->_lifetimelimit);
+        // Set expiration if specified
+        if ($lifetime) {
+          $this->_redis->expire(self::PREFIX_KEY.$id, min($lifetime, self::MAX_LIFETIME));
+        }
 
         // Process added tags
         if ($tags)
