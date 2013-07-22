@@ -7,13 +7,13 @@ Works with any Zend Framework project including all versions of Magento!
 ## FEATURES
 
  - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
- - Falls-back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
+ - Falls back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
  - Tagging is fully supported, implemented using the Redis "set" and "hash" datatypes for efficient tag management.
  - Key expiration is handled automatically by Redis.
  - Supports unix socket connection for even better performance on a single machine.
  - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
  - Uses transactions to prevent race conditions between saves, cleans or removes causing unexpected results.
- - Unit tested!
+ - __Unit tested!__
 
 ## INSTALLATION (Magento)
 
@@ -22,12 +22,12 @@ Works with any Zend Framework project including all versions of Magento!
 
    * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19, 2011.
    * phpredis is optional, but it is much faster than standalone mode
-   * phpredis does not support setting read timeouts at the moment (see pull request #260). If you receive read errors, this
+   * phpredis does not support setting read timeouts at the moment (see pull request #260). If you receive read errors (“read error on connection”), this
      might be the reason.
 
- 3. Install this module using [modman](https://github.com/colinmollenhour/modman)
+ 3. Install this module using [modman](https://github.com/colinmollenhour/modman):
 
-   * `modman clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
+    * `modman clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
 
  4. Edit app/etc/local.xml to configure:
 
@@ -37,12 +37,12 @@ Works with any Zend Framework project including all versions of Magento!
           <backend_options>
             <server>127.0.0.1</server> <!-- or absolute path to unix socket -->
             <port>6379</port>
-            <persistent></persistent> <!-- Specify a unique string like "cache-db0" to enable persistent connections. -->
-            <database>0</database>
-            <password></password>
+            <persistent></persistent> <!-- Specify unique string to enable persistent connections. E.g.: sess-db0; bugs with phpredis and php-fpm are known: https://github.com/nicolasff/phpredis/issues/70 -->
+            <database>0</database> <!-- Redis database number; protection against accidental data loss is improved by not sharing databases -->
+            <password></password> <!-- Specify if your Redis server requires authentication -->
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
-            <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
-            <read_timeout>10</read_timeout>         <!-- Set read timeout duration -->
+            <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures; a value of 1 will not retry after the first failure -->
+            <read_timeout>10</read_timeout>         <!-- Set read timeout duration; phpredis does not currently support setting read timeouts -->
             <automatic_cleaning_factor>0</automatic_cleaning_factor> <!-- Disabled by default -->
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
@@ -57,9 +57,9 @@ Works with any Zend Framework project including all versions of Magento!
           <backend_options>
             <server>127.0.0.1</server> <!-- or absolute path to unix socket -->
             <port>6379</port>
-            <persistent></persistent> <!-- Specify a unique string like "cache-db0" to enable persistent connections. -->
-            <database>1</database> <!-- Separate database 1 to keep FPC separately -->
-            <password></password>
+            <persistent></persistent> <!-- Specify unique string to enable persistent connections. E.g.: sess-db0; bugs with phpredis and php-fpm are known: https://github.com/nicolasff/phpredis/issues/70 -->
+            <database>1</database> <!-- Redis database number; protection against accidental data loss is improved by not sharing databases -->
+            <password></password> <!-- Specify if your Redis server requires authentication -->
             <force_standalone>0</force_standalone>  <!-- 0 for phpredis, 1 for standalone PHP -->
             <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
             <lifetimelimit>57600</lifetimelimit>    <!-- 16 hours of lifetime for cache record -->
@@ -81,13 +81,13 @@ Works with any Zend Framework project including all versions of Magento!
    For high-latency networks it may even improve performance. Use the
    [Magento Cache Benchmark](https://github.com/colinmollenhour/magento-cache-benchmark) to analyze your real-world
    compression performance and test your system's performance with different compression libraries.
-   - gzip - Slowest but highest compression. Most likely you will not want to use above level 1 compression.
-   - lzf - Fastest compress, fast decompress. Install: `sudo pecl install lzf`
-   - snappy - Fastest decompress, fast compress. Download and install: [snappy](http://code.google.com/p/snappy/) and [php-snappy](http://code.google.com/p/php-snappy/)
+   - gzip — Slowest but highest compression. Most likely you will not want to use above level 1 compression.
+   - lzf — Fastest compress, fast decompress. Install: `sudo pecl install lzf`
+   - snappy — Fastest decompress, fast compress. Download and install: [snappy](http://code.google.com/p/snappy/) and [php-snappy](http://code.google.com/p/php-snappy/)
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
  - Enable persistent connections. Make sure that if you have multiple configurations connecting the persistent
    string is unique for each configuration so that "select" commands don't cause conflicts.
- - Use the stats.php script to inspect your cache to find oversized or wasteful cache tags.
+ - Use the `stats.php` script to inspect your cache to find oversized or wasteful cache tags.
 
 ### Example Garbage Collection Script (Magento)
 
