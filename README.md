@@ -91,7 +91,7 @@ Works with any Zend Framework project including all versions of Magento!
 
 ### Example Garbage Collection Script (Magento)
 
-    <?php count($argc) or die('<pre>:P</pre>');
+    <?php PHP_SAPI == 'cli' or die('<h1>:P</h1>');
     ini_set('memory_limit','1024M');
     set_time_limit(0);
     error_reporting(E_ALL | E_STRICT);
