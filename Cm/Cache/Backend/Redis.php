@@ -485,42 +485,41 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $tags = array($tags);
         }
 
-        if($mode == Zend_Cache::CLEANING_MODE_ALL) {
-            return $this->_redis->flushDb();
+        try {
+            if ($mode == Zend_Cache::CLEANING_MODE_ALL) {
+                return $this->_redis->flushDb();
+            }
+            if ($mode == Zend_Cache::CLEANING_MODE_OLD) {
+                $this->_collectGarbage();
+                return TRUE;
+            }
+            if ( ! count($tags)) {
+                return TRUE;
+            }
+            switch ($mode)
+            {
+                case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
+
+                    $this->_removeByMatchingTags($tags);
+                    break;
+
+                case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
+
+                    $this->_removeByNotMatchingTags($tags);
+                    break;
+
+                case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
+
+                    $this->_removeByMatchingAnyTags($tags);
+                    break;
+
+                default:
+                    Zend_Cache::throwException('Invalid mode for clean() method: '.$mode);
+            }
+        } catch (CredisException $e) {
+            Zend_Cache::throwException('Error cleaning cache by mode '.$mode.': '.$e->getMessage(), $e);
         }
-
-        if($mode == Zend_Cache::CLEANING_MODE_OLD) {
-            $this->_collectGarbage();
-            return TRUE;
-        }
-
-        if( ! count($tags)) {
-            return TRUE;
-        }
-
-        $result = TRUE;
-
-        switch ($mode)
-        {
-            case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
-
-                $this->_removeByMatchingTags($tags);
-                break;
-
-            case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
-
-                $this->_removeByNotMatchingTags($tags);
-                break;
-
-            case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
-
-                $this->_removeByMatchingAnyTags($tags);
-                break;
-
-            default:
-                Zend_Cache::throwException('Invalid mode for clean() method: '.$mode);
-        }
-        return (bool) $result;
+        return TRUE;
     }
 
     /**
