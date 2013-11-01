@@ -350,11 +350,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _removeByMatchingAnyTags($tags)
     {
+        static $scriptLoaded = FALSE;
         if ($this->_useLua) {
+            $scriptSha1 = $this->_notMatchingTags ? self::LUA_CLEAN_NMT_SH1 : self::LUA_CLEAN_SH1;
             $pTags = $this->_preprocessTagIds($tags);
             $sArgs = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS);
-            $probe = $this->_redis->evalSha($this->_notMatchingTags ? self::LUA_CLEAN_NMT_SH1 : self::LUA_CLEAN_SH1, $pTags, $sArgs);
-            if (!$probe) {
+            if ( ! $scriptLoaded && ! $this->_redis->script('exists', $scriptSha1)) {
                 $script =
                     "local keysToDel = redis.call('SUNION', unpack(KEYS)) ".
                     "for _, keyname in ipairs(keysToDel) do ".
@@ -364,9 +365,18 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     "redis.call('DEL', unpack(KEYS)) ".
                     "redis.call('SREM', ARGV[2], unpack(KEYS)) ".
                     "return true";
-                $this->_redis->eval($script, $pTags, $sArgs);
+                $realSha1 = $this->_redis->script('load', $script);
+                if ($realSha1 == $scriptSha1) {
+                    $scriptLoaded = TRUE;
+                } else {
+                    $this->_useLua = $scriptLoaded = FALSE;
+                    $this->_log("Redis LUA script real SHA1 $scriptSha1 != Expected SHA1 $realSha1");
+                }
             }
-            return;
+            if ($scriptLoaded) {
+                $this->_redis->evalSha($scriptSha1, $pTags, $sArgs);
+                return;
+            }
         }
 
         $ids = $this->getIdsMatchingAnyTags($tags);

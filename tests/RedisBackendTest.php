@@ -59,6 +59,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'force_standalone' => $this->forceStandalone,
             'compress_threshold' => 100,
             'compression_lib' => 'gzip',
+            'use_lua' => TRUE,
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
         parent::setUp($notag);
