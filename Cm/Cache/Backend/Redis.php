@@ -369,8 +369,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 if ($realSha1 == $scriptSha1) {
                     $scriptLoaded = TRUE;
                 } else {
-                    $this->_useLua = $scriptLoaded = FALSE;
-                    $this->_log("Redis LUA script real SHA1 $scriptSha1 != Expected SHA1 $realSha1");
+                    $this->_useLua = $scriptLoaded = FALSE; // Disable LUA and log error rather than throw exception
+                    $this->_log("Redis LUA script real SHA1 $realSha1 != expected SHA1 $scriptSha1");
                 }
             }
             if ($scriptLoaded) {
