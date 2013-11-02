@@ -155,6 +155,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         else if ( function_exists('snappy_compress') ) {
             $this->_compressionLib = 'snappy';
         }
+        else if ( function_exists('lz4_compress')) {
+            $this->_compressionLib = 'l4z';
+        }
         else if ( function_exists('lzf_compress') ) {
             $this->_compressionLib = 'lzf';
         }
@@ -710,6 +713,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             switch($this->_compressionLib) {
               case 'snappy': $data = snappy_compress($data); break;
               case 'lzf':    $data = lzf_compress($data); break;
+              case 'l4z':    $data = lz4_compress($data,($level > 1 ? true : false)); break;
               case 'gzip':   $data = gzcompress($data, $level); break;
             }
             if( ! $data) {
@@ -730,6 +734,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             switch(substr($data,0,2)) {
                 case 'sn': return snappy_uncompress(substr($data,5));
                 case 'lz': return lzf_decompress(substr($data,5));
+                case 'l4': return lz4_uncompress(substr($data,5));
                 case 'gz': case 'zc': return gzuncompress(substr($data,5));
             }
         }
