@@ -366,6 +366,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     "return true";
                 $this->_redis->eval($script, $pTags, $sArgs);
             }
+            return;
         }
 
         $ids = $this->getIdsMatchingAnyTags($tags);
