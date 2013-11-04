@@ -47,7 +47,7 @@ Works with any Zend Framework project including all versions of Magento!
             <compress_data>1</compress_data>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_tags>1</compress_tags>  <!-- 0-9 for compression level, recommended: 0 or 1 -->
             <compress_threshold>20480</compress_threshold>  <!-- Strings below this size will not be compressed -->
-            <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf and snappy -->
+            <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf, lz4 (as l4z) and snappy -->
             <use_lua>0</use_lua> <!-- Set to 1 if Lua scripts should be used for some operations -->
           </backend_options>
         </cache>
