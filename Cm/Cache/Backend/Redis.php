@@ -214,7 +214,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function save($data, $id, $tags = array(), $specificLifetime = false)
     {
-        if ( ! is_array($tags)) $tags = $tags ? array($tags) : array();
+        if(!is_array($tags))
+            $tags = $tags ? array($tags) : array();
+        else
+            $tags = array_flip(array_flip($tags));
 
         $lifetime = $this->getLifetime($specificLifetime);
 
