@@ -58,6 +58,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
     const LUA_CLEAN_SH1 = '53210a6e407face8f532b2b6dec60399111aa341';
     const LUA_CLEAN_NMT_SH1 = '6369890b0925f9d08c0afe3b701310269f0c2477';
+    const LUA_GC_SH1 = 'c00416b970f1aa6363b44965d4cf60ee99a6f065';
 
     /** @var Credis_Client */
     protected $_redis;
@@ -466,6 +467,67 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected function _collectGarbage()
     {
         // Clean up expired keys from tag id set and global id set
+
+        if ($this->_useLua) {
+            $sArgs = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, self::PREFIX_TAG_IDS, ($this->_notMatchingTags ? 1 : 0));
+            $allTags = (array) $this->_redis->sMembers(self::SET_TAGS);
+            $tagsCount = count($allTags);
+            $counter = 0;
+            $tagsBatch = array();
+            foreach ($allTags as $tag) {
+                $tagsBatch[] = $tag;
+                $counter++;
+                if (count($tagsBatch) == 10 || $counter == $tagsCount ) {
+                    if ( ! $this->_redis->evalSha(self::LUA_GC_SH1, $tagsBatch, $sArgs)) {
+                        $script =
+                            "local tagKeys = {} ".
+                            "local expired = {} ".
+                            "local expiredCount = 0 ".
+                            "local notExpiredCount = 0 ".
+                            "for _, tagName in ipairs(KEYS) do ".
+                                "tagKeys = redis.call('SMEMBERS', ARGV[4]..tagName) ".
+                                "for __, keyName in ipairs(tagKeys) do ".
+                                    "if (redis.call('EXISTS', ARGV[1]..keyName) == 0) then ".
+                                        "expiredCount = expiredCount + 1 ".
+                                        "expired[expiredCount] = keyName ".
+                                        /* Redis Lua scripts have a hard limit of 8000 parameters per command */
+                                        "if (expiredCount == 7990) then ".
+                                            "redis.call('SREM', ARGV[4]..tagName, unpack(expired)) ".
+                                            "if (ARGV[5] == '1') then ".
+                                                "redis.call('SREM', ARGV[3], unpack(expired)) ".
+                                            "end ".
+                                            "expiredCount = 0 ".
+                                            "expired = {} ".
+                                        "end ".
+                                    "else ".
+                                        "notExpiredCount = notExpiredCount + 1 ".
+                                    "end ".
+                                "end ".
+                                "if (expiredCount > 0) then ".
+                                    "redis.call('SREM', ARGV[4]..tagName, unpack(expired)) ".
+                                    "if (ARGV[5] == '1') then ".
+                                        "redis.call('SREM', ARGV[3], unpack(expired)) ".
+                                    "end ".
+                                "end ".
+                                "if (notExpiredCount == 0) then ".
+                                    "redis.call ('DEL', ARGV[4]..tagName) ".
+                                    "redis.call ('SREM', ARGV[2], tagName) ".
+                                "end ".
+                                "expired = {} ".
+                                "expiredCount = 0 ".
+                                "notExpiredCount = 0 ".
+                            "end ".
+                            "return true";
+                        $this->_redis->eval($script, $tagsBatch, $sArgs);
+                    }
+                    $tagsBatch = array();
+                    /* Give Redis some time to handle other requests */
+                    usleep(20000);
+                }
+            }
+            return;
+        }
+
         $exists = array();
         $tags = (array) $this->_redis->sMembers(self::SET_TAGS);
         foreach($tags as $tag)
