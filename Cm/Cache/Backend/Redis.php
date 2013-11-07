@@ -56,8 +56,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const DEFAULT_CONNECT_RETRIES = 1;
 
     const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
-    const LUA_CLEAN_SH1 = '53210a6e407face8f532b2b6dec60399111aa341';
-    const LUA_CLEAN_NMT_SH1 = '6369890b0925f9d08c0afe3b701310269f0c2477';
+    const LUA_CLEAN_SH1 = '1dc59e493285befe678c480c8f10f1a7cc352c71';
 
     /** @var Credis_Client */
     protected $_redis;
@@ -418,15 +417,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected function _removeByMatchingAnyTags($tags)
     {
         if ($this->_useLua) {
-            $scriptSha1 = $this->_notMatchingTags ? self::LUA_CLEAN_NMT_SH1 : self::LUA_CLEAN_SH1;
             $pTags = $this->_preprocessTagIds($tags);
-            $sArgs = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS);
-            if ( ! $this->_redis->evalSha($scriptSha1, $pTags, $sArgs)) {
+            $sArgs = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0));
+            if ( ! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $pTags, $sArgs)) {
                 $script =
                     "local keysToDel = redis.call('SUNION', unpack(KEYS)) ".
                     "for _, keyname in ipairs(keysToDel) do ".
-                    "redis.call('DEL', ARGV[1]..keyname) ".
-                    ($this->_notMatchingTags ? "redis.call('SREM', ARGV[3], keyname) " : "").
+                        "redis.call('DEL', ARGV[1]..keyname) ".
+                        "if (ARGV[4] == '1') then ".
+                            "redis.call('SREM', ARGV[3], keyname) ".
+                        "end ".
                     "end ".
                     "redis.call('DEL', unpack(KEYS)) ".
                     "redis.call('SREM', ARGV[2], unpack(KEYS)) ".
