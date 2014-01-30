@@ -90,22 +90,23 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function __construct($options = array())
     {
-        $servers = array();
-
         if( isset($options['servers']) ) {
             if( !is_array($options['servers']) ) {
                 Zend_Cache::throwException('Redis \'servers\' config should be an array. Got \''.gettype($options['servers']).'\'');
             }
+            $servers = array();
             foreach( $options['servers'] as $server) {
                 $servers[] = $this->_initBackendConfig($server);
             }
+            $this->_redis = new Credis_Cluster($servers);
+            foreach($this->_redis->clients() as $client) {
+                $this->_initRedisConfig($client,$options['servers']);
+            }
         } else {
-            $servers[] = $this->_initBackendConfig($options);
-        }
-
-        $this->_redis = new Credis_Cluster($servers);
-        foreach($this->_redis->clients() as $client) {
-            $this->_initRedisConfig($client);
+            $backendConfig = $this->_initBackendConfig($options);
+            $persistent = isset($options['persistent']) ? $options['persistent'] : '';
+            $this->_redis = new Credis_Client($backendConfig['host'], $backendConfig['port'], $backendConfig['timeout'], $persistent);
+            $this->_initBackendConfig($this->_redis, $options);
         }
 
         if ( isset($options['notMatchingTags']) ) {
@@ -178,8 +179,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /**
      * Configure Credits_Client options
      * @param Credis_Client $redis
+     * @param array $options
      */
-    protected function _initRedisConfig(\Credis_Client $redis)
+    protected function _initRedisConfig(\Credis_Client $redis, $options)
     {
         if ( isset($options['force_standalone']) && $options['force_standalone']) {
             $redis->forceStandalone();
