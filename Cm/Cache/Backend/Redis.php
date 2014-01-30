@@ -106,7 +106,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $backendConfig = $this->_initBackendConfig($options);
             $persistent = isset($options['persistent']) ? $options['persistent'] : '';
             $this->_redis = new Credis_Client($backendConfig['host'], $backendConfig['port'], $backendConfig['timeout'], $persistent);
-            $this->_initBackendConfig($this->_redis, $options);
+            $this->_initRedisConfig($this->_redis, $options);
         }
 
         if ( isset($options['notMatchingTags']) ) {
@@ -174,6 +174,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $port = isset($options['port']) ? $options['port'] : NULL;
         $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
         $config = array('host'=>$options['server'], 'port'=>$port, 'timeout'=> $timeout);
+        Mage::log("Connectin to Redis server {$options['server']} on port {$port}");
         return $config;
     }
     /**
