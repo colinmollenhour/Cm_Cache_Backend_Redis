@@ -176,7 +176,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             'port'=>$port,
             'timeout'=> $timeout,
             'persistent'=>'',
-            'db'=>$db,
+            'database'=>$db,
             'password'=>$password,
             'master'=>$master
         );
@@ -189,11 +189,13 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected function _initSentinel($options)
     {
         $backendConfig = $this->_initBackendConfig($options);
-        $masterName = isset($options['master_name']) ? $options['master_name'] : '';
+        $masterName = isset($options['master_name']) ? $options['master_name'] : 'master';
         $selectRandomSlave = isset($options['select_random_slave']) && ($options['select_random_slave'] || $options['select_random_slave'] == 'true');
         $readOnMaster = !isset($options['read_on_master']) || ($options['read_on_master'] || $options['read_on_master'] == 'true');
         $sentinel = new Credis_Client($backendConfig['host'],$backendConfig['port']);
-        $this->_redis = $sentinel->getCluster($masterName,$selectRandomSlave,$readOnMaster);
+        $debug = isset($options['debug']) && ($options['debug'] || $options['debug'] == 'true');
+        $sentinel = new Credis_Sentinel(new Credis_Client($backendConfig['host'],$backendConfig['port']));
+        $this->_redis = $sentinel->getCluster($masterName,$selectRandomSlave,$readOnMaster,$debug);
         return $this;
     }
     /**
@@ -242,7 +244,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         foreach( $options['servers'] as $server) {
             $servers[] = $this->_initBackendConfig($server);
         }
-        $this->_redis = new Credis_Cluster($servers);
+        $replicas = isset($options['replicas'])?(int)$options['replicas']:128;
+        $readOnMaster = !isset($options['read_on_master']) || ($options['read_on_master'] || $options['read_on_master'] == 'true');
+        $debug = isset($options['debug']) && ($options['debug'] || $options['debug'] == 'true');
+        $this->_redis = new Credis_Cluster($servers, $replicas, $readOnMaster, $debug);
         foreach($this->_redis->clients() as $client) {
             $this->_initRedisConfig($client,$options['servers']);
         }
