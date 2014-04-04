@@ -192,7 +192,6 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $masterName = isset($options['master_name']) ? $options['master_name'] : 'master';
         $selectRandomSlave = isset($options['select_random_slave']) && ($options['select_random_slave'] || $options['select_random_slave'] == 'true');
         $readOnMaster = !isset($options['read_on_master']) || ($options['read_on_master'] || $options['read_on_master'] == 'true');
-        $sentinel = new Credis_Client($backendConfig['host'],$backendConfig['port']);
         $debug = isset($options['debug']) && ($options['debug'] || $options['debug'] == 'true');
         $sentinel = new Credis_Sentinel(new Credis_Client($backendConfig['host'],$backendConfig['port']));
         $this->_redis = $sentinel->getCluster($masterName,$selectRandomSlave,$readOnMaster,$debug);
