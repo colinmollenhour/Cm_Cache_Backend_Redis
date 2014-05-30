@@ -83,8 +83,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /** @var bool */
     protected $_useLua = false;
 
-    /** @var int */
-    protected $_luaKeySteps = 10000;
+    /**
+     * Lua's unpack() has a limit on the size of the table imposed by
+     * the number of Lua stack slots that a C function can use.
+     * This value is defined by LUAI_MAXCSTACK in luaconf.h and for Redis it is set to 8000.
+     *
+     * @see https://github.com/antirez/redis/blob/b903145/deps/lua/src/luaconf.h#L439
+     * @var int
+     */
+    protected $_luaMaxCStack = 5000;
 
     /**
      * Contruct Zend_Cache Redis backend
@@ -174,8 +181,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_useLua = (bool) $options['use_lua'];
         }
 
-        if (isset($options['lua_key_steps'])) {
-            $this->_luaKeySteps = (int) $options['lua_key_steps'];
+        if (isset($options['lua_max_c_stack'])) {
+            $this->_luaMaxCStack = (int) $options['lua_max_c_stack'];
         }
     }
 
