@@ -83,6 +83,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /** @var bool */
     protected $_useLua = false;
 
+    /** @var int */
+    protected $_luaKeySteps = 10000;
+
     /**
      * Contruct Zend_Cache Redis backend
      * @param array $options
@@ -169,6 +172,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         if (isset($options['use_lua'])) {
             $this->_useLua = (bool) $options['use_lua'];
+        }
+
+        if (isset($options['lua_key_steps'])) {
+            $this->_luaKeySteps = (int) $options['lua_key_steps'];
         }
     }
 
@@ -422,12 +429,13 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $sArgs = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0));
             if ( ! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $pTags, $sArgs)) {
                 $script =
-                    "local step = 10000 ".
-                    "while #KEYS > 0 do ".
+                    "local steps = " . $this->_luaKeySteps . " ".
+                        "while #KEYS > 0 do ".
+                        "local i = 0 ".
                         "local keysToProcess = {} ".
-                        "for i = 1, step do ".
-                            "table.insert(keysToProcess, KEYS[i]) ".
-                            "table.remove(KEYS, i) ".
+                        "while i < steps and #KEYS > 0 do ".
+                            "table.insert(keysToProcess, table.remove(KEYS)) ".
+                            "i = i + 1 ".
                         "end ".
                         "local keysToDel = redis.call('SUNION', unpack(keysToProcess)) ".
                         "for _, keyname in ipairs(keysToDel) do ".
