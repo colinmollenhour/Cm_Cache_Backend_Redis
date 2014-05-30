@@ -430,7 +430,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             if ( ! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $pTags, $sArgs)) {
                 $script =
                     "local steps = " . $this->_luaKeySteps . " ".
-                        "while #KEYS > 0 do ".
+                    "while #KEYS > 0 do ".
                         "local i = 0 ".
                         "local keysToProcess = {} ".
                         "while i < steps and #KEYS > 0 do ".
