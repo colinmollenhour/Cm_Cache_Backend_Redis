@@ -96,7 +96,9 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue($this->_instance->clean());
         $this->assertTrue($this->_instance->save('BLAH','foo', array('TAG1', 'TAG2'), 1));
         $this->assertTrue($this->_instance->save('BLAH','bar', array('TAG1', 'TAG3'), 1));
-        $this->assertEquals(array('foo','bar'), $this->_instance->getIdsMatchingAnyTags(array('TAG1','TAG2','TAG3')));
+        $ids = $this->_instance->getIdsMatchingAnyTags(array('TAG1','TAG2','TAG3'));
+        sort($ids);
+        $this->assertEquals(array('bar','foo'), $ids);
 
         // sleep(2);
         $this->_instance->___expire('foo');
