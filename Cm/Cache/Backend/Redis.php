@@ -84,6 +84,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_useLua = false;
 
     /**
+     * Lua's unpack() has a limit on the size of the table imposed by
+     * the number of Lua stack slots that a C function can use.
+     * This value is defined by LUAI_MAXCSTACK in luaconf.h and for Redis it is set to 8000.
+     *
+     * @see https://github.com/antirez/redis/blob/b903145/deps/lua/src/luaconf.h#L439
+     * @var int
+     */
+    protected $_luaMaxCStack = 5000;
+
+    /**
      * Contruct Zend_Cache Redis backend
      * @param array $options
      * @return \Cm_Cache_Backend_Redis
@@ -169,6 +179,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         if (isset($options['use_lua'])) {
             $this->_useLua = (bool) $options['use_lua'];
+        }
+
+        if (isset($options['lua_max_c_stack'])) {
+            $this->_luaMaxCStack = (int) $options['lua_max_c_stack'];
         }
     }
 
@@ -422,15 +436,18 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $sArgs = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0));
             if ( ! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $pTags, $sArgs)) {
                 $script =
-                    "local keysToDel = redis.call('SUNION', unpack(KEYS)) ".
-                    "for _, keyname in ipairs(keysToDel) do ".
-                        "redis.call('DEL', ARGV[1]..keyname) ".
-                        "if (ARGV[4] == '1') then ".
-                            "redis.call('SREM', ARGV[3], keyname) ".
+                    "local steps = " . (int) $this->_luaMaxCStack . " ".
+                    "for i = 1, #KEYS, steps do ".
+                        "local keysToDel = redis.call('SUNION', unpack(KEYS, i, math.min(#KEYS, i + steps - 1))) ".
+                        "for _, keyname in ipairs(keysToDel) do ".
+                            "redis.call('DEL', ARGV[1]..keyname) ".
+                            "if (ARGV[4] == '1') then ".
+                                "redis.call('SREM', ARGV[3], keyname) ".
+                            "end ".
                         "end ".
+                        "redis.call('DEL', unpack(KEYS, i, math.min(#KEYS, i + steps - 1))) ".
+                        "redis.call('SREM', ARGV[2], unpack(KEYS, i, math.min(#KEYS, i + steps - 1))) ".
                     "end ".
-                    "redis.call('DEL', unpack(KEYS)) ".
-                    "redis.call('SREM', ARGV[2], unpack(KEYS)) ".
                     "return true";
                 $this->_redis->eval($script, $pTags, $sArgs);
             }
