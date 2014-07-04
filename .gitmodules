@@ -1,3 +1,0 @@
-[submodule "lib/Credis"]
-	path = lib/Credis
-	url = https://github.com/colinmollenhour/credis.git
