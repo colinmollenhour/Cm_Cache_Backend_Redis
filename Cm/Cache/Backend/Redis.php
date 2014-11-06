@@ -51,6 +51,11 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const FIELD_INF       = 'i';
 
     const MAX_LIFETIME    = 2592000; /* Redis backend limit */
+    /**
+     * This default regex is specific for known EE FPC keys.
+     * @var string
+     */
+    const LIFETIME_FIX_KEY_REGEX = '/^.*_REQEST_\X{32}(_METADATA|FPC_DESIGN_CHANGE_CACHE)?$/';
     const COMPRESS_PREFIX = ":\x1f\x8b";
     const DEFAULT_CONNECT_TIMEOUT = 2.5;
     const DEFAULT_CONNECT_RETRIES = 1;
@@ -92,6 +97,29 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      * @var int
      */
     protected $_luaMaxCStack = 5000;
+    /**
+     * Some FPC implementations call Zend_Cache_Backend::save without
+     * lifetime, effectively setting non-volatile keys.
+     * Most notably Magento EE FPC does this. When a cache store is finite in
+     * it's size, Redis is typically set to a volatile eviction method and
+     * should be for Magento, as some keys cannot be cleaned out or result in
+     * crucial configuration information to be lost. In extreme cases this
+     * can cause the 100-router iteration bug.
+     *
+     * Typically, the FPC pages take up the bulk of the cache store. When Redis
+     * cannot evict these FPC keys, you will at some point end up with a
+     * completely non-volatile set of keys, effectively preventing new
+     * information from entering the cache.
+     *
+     * @var string
+     */
+    protected $_lifetimeFixKeyRegex = self::LIFETIME_FIX_KEY_REGEX;
+
+    /** @var int */
+    protected $_lifetimeFixLifetime = self::MAX_LIFETIME;
+
+    /** @var bool */
+    protected $_lifetimeFixEnable = false;
 
     /**
      * Contruct Zend_Cache Redis backend
@@ -184,6 +212,18 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if (isset($options['lua_max_c_stack'])) {
             $this->_luaMaxCStack = (int) $options['lua_max_c_stack'];
         }
+
+        if (isset($options['lifetime_fix_key_regex'])) {
+            $this->_lifetimeFixKeyRegex = $options['lifetime_fix_key_regex'];
+        }
+
+        if( isset($options['lifetime_fix_lifetime'])) {
+            $this->_lifetimeFixLifetime = $options['lifetime_fix_lifetime'];
+        }
+
+        if( isset($options['lifetime_fix_enable'])) {
+            $this->_lifetimeFixEnable = (bool)$options['lifetime_fix_enable'];
+        }
     }
 
     /**
@@ -234,6 +274,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         else
             $tags = array_flip(array_flip($tags));
 
+        // Put lifetimeFixEnable test first. There is no need to do complex
+        // string matching if we don't need to fix-up the lifetime.
+        if( $this->_lifetimeFixEnable && $specificLifetime === null && !empty($id) && preg_match($this->_lifetimeFixKeyRegex, $id)) {
+                $specificLifetime = $this->_lifetimeFixLifetime;
+            }
+        }
         $lifetime = $this->getLifetime($specificLifetime);
 
         if ($this->_useLua) {
