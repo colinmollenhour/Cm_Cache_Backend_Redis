@@ -191,7 +191,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     
     /**
      * @param $options
-     * @return bool
+     * @return array
      * Author: Adam Hall (adamhall@mytuxedo.co.uk)
      * Checks to see if Redis is online, and if not; use the fail over ip, requires pecl redis.
      */
