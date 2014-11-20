@@ -189,30 +189,30 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
     }
     
-    	/**
-	 * @param $options
-	 * @return bool
-	 * Author: Adam Hall (adamhall@mytuxedo.co.uk)
-	 * Checks to see if Redis is online, and if not; use the fail over ip, requires pecl redis.
-	 */
-	public function checkRedis($options)
-	{
-		$extension = extension_loaded('redis');
-		if($extension && $options['failover_enabled']) {
-			$redis = new Redis();
-			$connect = $redis->connect($options['server'], $options['port']);
-			if($connect == false) {
-				$options['server'] = $options['failover'];
-				$options['port'] = $options['failover_port'];
-				return $options;
-			}
-			$redis->close();
-			return $options;
-		}
-		else {
-			return $options;
-		}
+    /**
+     * @param $options
+     * @return bool
+     * Author: Adam Hall (adamhall@mytuxedo.co.uk)
+     * Checks to see if Redis is online, and if not; use the fail over ip, requires pecl redis.
+     */
+    public function checkRedis($options)
+    {
+	$extension = extension_loaded('redis');
+	if($extension && $options['failover_enabled']) {
+	    $redis = new Redis();
+	    $connect = $redis->connect($options['server'], $options['port']);
+	    if($connect == false) {
+	        $options['server'] = $options['failover'];
+		$options['port'] = $options['failover_port'];
+		return $options;
+	    }
+	    $redis->close();
+	    return $options;
 	}
+	else {
+	    return $options;
+	}
+     }
 
     /**
      * Load value with given id from cache
