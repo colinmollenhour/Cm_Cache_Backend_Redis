@@ -161,7 +161,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         if ( isset($options['compression_lib']) ) {
-            $this->_compressionLib = $options['compression_lib'];
+            $this->_compressionLib = (string) $options['compression_lib'];
         }
         else if ( function_exists('snappy_compress') ) {
             $this->_compressionLib = 'snappy';
@@ -852,12 +852,13 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _encodeData($data, $level)
     {
-        if ($level && strlen($data) >= $this->_compressThreshold) {
+        if ($this->_compressionLib && $level && strlen($data) >= $this->_compressThreshold) {
             switch($this->_compressionLib) {
-              case 'snappy': $data = snappy_compress($data); break;
-              case 'lzf':    $data = lzf_compress($data); break;
-              case 'l4z':    $data = lz4_compress($data,($level > 1 ? true : false)); break;
-              case 'gzip':   $data = gzcompress($data, $level); break;
+                case 'snappy': $data = snappy_compress($data); break;
+                case 'lzf':    $data = lzf_compress($data); break;
+                case 'l4z':    $data = lz4_compress($data,($level > 1 ? true : false)); break;
+                case 'gzip':   $data = gzcompress($data, $level); break;
+                default:       throw new CredisException("Unrecognized 'compression_lib'.");
             }
             if( ! $data) {
                 throw new CredisException("Could not compress cache data.");
