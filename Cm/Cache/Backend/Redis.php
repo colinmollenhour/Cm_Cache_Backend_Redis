@@ -771,7 +771,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function getFillingPercentage()
     {
-        return 0;
+        $maxMem = $this->_redis->config('GET','maxmemory');
+        if (0 == (int) $maxMem['maxmemory']) {
+            return 1;
+        }
+        $info = $this->_redis->info();
+        return round(
+            ($info['used_memory']/$maxMem['maxmemory']*100)
+            ,0
+            ,PHP_ROUND_HALF_UP
+        );
     }
 
     /**
