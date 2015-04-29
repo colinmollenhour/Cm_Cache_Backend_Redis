@@ -80,6 +80,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /** @var string */
     protected $_compressionLib;
 
+    /**
+     * On large data sets SUNION slows down considerably when used with too many arguments
+     * so this is used to chunk the SUNION into a few commands where the number of set ids
+     * exceeds this setting.
+     * 
+     * @var int
+     */
+    protected $_sunionChunkSize = 500;
+
     /** @var bool */
     protected $_useLua = false;
 
@@ -176,6 +185,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_compressionLib = 'gzip';
         }
         $this->_compressPrefix = substr($this->_compressionLib,0,2).self::COMPRESS_PREFIX;
+
+        if ( isset($options['sunion_chunk_size']) && $options['sunion_chunk_size'] > 0) {
+            $this->_sunionChunkSize = (int) $options['sunion_chunk_size'];
+        }
 
         if (isset($options['use_lua'])) {
             $this->_useLua = (bool) $options['use_lua'];
@@ -757,10 +770,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function getIdsMatchingAnyTags($tags = array())
     {
+        $result = array();
         if ($tags) {
-            return (array) $this->_redis->sUnion( $this->_preprocessTagIds($tags));
+            $chunks = array_chunk($tags, $this->_sunionChunkSize);
+            foreach ($chunks as $chunk) {
+                $result = array_merge($result, (array) $this->_redis->sUnion( $this->_preprocessTagIds($chunk)));
+            }
+            $result = array_unique($result);    // since we are chunking requests, we must de-duplicate member names
         }
-        return array();
+        return $result;
     }
 
     /**
