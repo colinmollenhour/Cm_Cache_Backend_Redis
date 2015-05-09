@@ -799,7 +799,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             return 1;
         }
         $info = $this->_redis->info();
-        return round(
+        return (int) round(
             ($info['used_memory']/$maxMem['maxmemory']*100)
             ,0
             ,PHP_ROUND_HALF_UP
@@ -956,6 +956,14 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     public function ___expire($id)
     {
         $this->_redis->del(self::PREFIX_KEY.$id);
+    }
+
+    /**
+     * Only for unit tests
+     */
+    public function ___scriptFlush()
+    {
+        $this->_redis->script('flush');
     }
 
 }

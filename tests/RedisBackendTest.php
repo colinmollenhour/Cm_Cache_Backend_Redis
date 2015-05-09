@@ -65,6 +65,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'lua_max_c_stack' => self::LUA_MAX_C_STACK,
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
+        $this->_instance->___scriptFlush();
         parent::setUp($notag);
     }
 

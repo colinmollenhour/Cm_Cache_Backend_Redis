@@ -196,7 +196,7 @@ class Zend_Cache_CommonExtendedBackendTest extends Zend_Cache_CommonBackendTest 
         $bool = $this->_instance->touch('bar', 30);
         $this->assertTrue($bool);
         $res2 = $this->_instance->getMetadatas('bar');
-        $this->assertTrue(($res2['expire'] - $res['expire']) == 30);
+        $this->assertEquals($res2['expire'] - $res['expire'], 30);
         $this->assertTrue(($res2['mtime'] >= $res['mtime']));
     }
 
