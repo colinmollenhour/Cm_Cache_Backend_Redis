@@ -27,7 +27,7 @@ Works with any Zend Framework project including all versions of Magento!
 
  3. Install this module using [modman](https://github.com/colinmollenhour/modman):
 
-    * `modman clone git://github.com/colinmollenhour/Cm_Cache_Backend_Redis.git`
+    * `modman clone https://github.com/colinmollenhour/Cm_Cache_Backend_Redis`
 
  4. Edit app/etc/local.xml to configure:
 
