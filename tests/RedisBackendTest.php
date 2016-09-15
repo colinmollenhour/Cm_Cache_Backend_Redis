@@ -201,4 +201,20 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertEquals(0, count($this->_instance->getIdsMatchingAnyTags($_tags)));
     }
 
+    public function testAutoExpiry()
+    {
+        $this->_instance->setAutoExpireLifetime(60);
+        $this->_instance->setAutoExpireRefreshOnLoad(true);
+        $id = 'REQEST';
+        $data = 'foo';
+        $tags = array('tag1');
+        $this->_instance->save($data, $id, $tags, null);
+        $metadata = $this->_instance->getMetadatas($id);
+        $this->assertGreaterThan(1, $metadata['expire']);
+        sleep(1);
+        $this->_instance->load($id);
+        $nextMetadata = $this->_instance->getMetadatas($id);
+        $this->assertGreaterThan($metadata['expire'], $nextMetadata['expire']);
+    }
+
 }

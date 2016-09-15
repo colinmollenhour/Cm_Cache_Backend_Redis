@@ -774,6 +774,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         return !empty($matches);
     }
 
+    public function setAutoExpireLifetime($lifetime)
+    {
+        $this->_autoExpireLifetime = (int)$lifetime;
+    }
+
+    public function setAutoExpireRefreshOnLoad($val)
+    {
+        $this->_autoExpireRefreshOnLoad = (bool)$val;
+    }
+
     /**
      * Return an array of stored cache ids
      *
