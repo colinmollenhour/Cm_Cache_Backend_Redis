@@ -103,7 +103,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_luaMaxCStack = 5000;
 
     /**
-     * Contruct Zend_Cache Redis backend
+     * Construct Zend_Cache Redis backend
      * @param array $options
      * @return \Cm_Cache_Backend_Redis
      */
