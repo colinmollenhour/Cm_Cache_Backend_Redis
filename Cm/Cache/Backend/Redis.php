@@ -746,8 +746,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _getAutoExpiringLifetime($lifetime, $id)
     {
-        if ($lifetime) {
-            // If it's already truthy, go with it.
+        if ($lifetime || !$this->_autoExpireLifetime) {
+            // If it's already truthy, or there's no auto expire go with it.
             return $lifetime;
         }
 
