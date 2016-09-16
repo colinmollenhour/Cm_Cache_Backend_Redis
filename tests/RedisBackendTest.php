@@ -43,6 +43,10 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
 
     protected $forceStandalone = FALSE;
 
+    protected $autoExpireLifetime = 0;
+
+    protected $autoExpireRefreshOnLoad = 0;
+
     /** @var Cm_Cache_Backend_Redis */
     protected $_instance;
 
@@ -63,6 +67,8 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'compression_lib' => 'gzip',
             'use_lua' => TRUE,
             'lua_max_c_stack' => self::LUA_MAX_C_STACK,
+            'auto_expire_lifetime' => $this->autoExpireLifetime,
+            'auto_expire_refresh_on_load' => $this->autoExpireRefreshOnLoad,
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
         $this->_instance->___scriptFlush();
@@ -199,22 +205,6 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertEquals(1, count($this->_instance->getIdsMatchingAnyTags($_tags)));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, $_tags);
         $this->assertEquals(0, count($this->_instance->getIdsMatchingAnyTags($_tags)));
-    }
-
-    public function testAutoExpiry()
-    {
-        $this->_instance->setAutoExpireLifetime(60);
-        $this->_instance->setAutoExpireRefreshOnLoad(true);
-        $id = 'REQEST';
-        $data = 'foo';
-        $tags = array('tag1');
-        $this->_instance->save($data, $id, $tags, null);
-        $metadata = $this->_instance->getMetadatas($id);
-        $this->assertGreaterThan(1, $metadata['expire']);
-        sleep(1);
-        $this->_instance->load($id);
-        $nextMetadata = $this->_instance->getMetadatas($id);
-        $this->assertGreaterThan($metadata['expire'], $nextMetadata['expire']);
     }
 
 }
