@@ -138,6 +138,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $this->_clientOptions->readTimeout = isset($options['read_timeout']) ? (float) $options['read_timeout'] : NULL;
         $this->_clientOptions->password = isset($options['password']) ? $options['password'] : NULL;
         $this->_clientOptions->database = isset($options['database']) ? (int) $options['database'] : 0;
+        $this->_clientOptions->persistent = $persistent;
 
         // If 'sentinel_master' is specified then server is actually sentinel and master address should be fetched from server.
         if ( ! empty($options['sentinel_master_set'])) {
