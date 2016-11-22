@@ -118,39 +118,19 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function __construct($options = array())
     {
-        if ( empty($options['server']) ) {
-            Zend_Cache::throwException('Redis \'server\' not specified.');
+        if(isset($options['servers'])) {
+            if(isset($options['sentinel']) && ($options['sentinel'] || $options['sentinel'] == 'true')){
+                $this->_initMultiSentinel($options);
+            } else {
+                $this->_initRedisCluster($options);
+            }
+        } else {
+            if(isset($options['sentinel']) && ($options['sentinel'] || $options['sentinel'] == 'true')){
+                $this->_initSentinel($options);
+            } else {
+                $this->_initRedisClient($options);
+            }
         }
-
-        if ( empty($options['port']) && substr($options['server'],0,1) != '/' ) {
-            Zend_Cache::throwException('Redis \'port\' not specified.');
-        }
-
-        $port = isset($options['port']) ? $options['port'] : NULL;
-        $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
-        $persistent = isset($options['persistent']) ? $options['persistent'] : '';
-        $this->_redis = new Credis_Client($options['server'], $port, $timeout, $persistent);
-
-        if ( isset($options['force_standalone']) && $options['force_standalone']) {
-            $this->_redis->forceStandalone();
-        }
-
-        $connectRetries = isset($options['connect_retries']) ? (int)$options['connect_retries'] : self::DEFAULT_CONNECT_RETRIES;
-        $this->_redis->setMaxConnectRetries($connectRetries);
-
-        if ( ! empty($options['read_timeout']) && $options['read_timeout'] > 0) {
-            $this->_redis->setReadTimeout((float) $options['read_timeout']);
-        }
-
-        if ( ! empty($options['password'])) {
-            $this->_redis->auth($options['password']) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
-        }
-
-        // Always select database on startup in case persistent connection is re-used by other code
-        if (empty($options['database'])) {
-            $options['database'] = 0;
-        }
-        $this->_redis->select( (int) $options['database']) or Zend_Cache::throwException('The redis database could not be selected.');
 
         if ( isset($options['notMatchingTags']) ) {
             $this->_notMatchingTags = (bool) $options['notMatchingTags'];
@@ -220,6 +200,124 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
     }
 
+    /**
+     * Initialize Credis_Cluster backend config
+     * @param array $options
+     * @return array
+     */
+    protected function _initBackendConfig($options)
+    {
+        if ( empty($options['server']) ) {
+            Zend_Cache::throwException('Redis \'server\' not specified.');
+        }
+
+        if ( empty($options['port']) && substr($options['server'],0,1) != '/' ) {
+            Zend_Cache::throwException('Redis \'port\' not specified.');
+        }
+        $port = isset($options['port']) ? $options['port'] : NULL;
+        $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
+        $password = isset($options['password']) ? $options['password'] : NULL;
+        $db = isset($options['database']) ? $options['database'] : 0;
+        $master = isset($options['master']) && ($options['master'] || $options['master'] == 'true');
+        $config = array(
+            'host'=>$options['server'],
+            'port'=>$port,
+            'timeout'=> $timeout,
+            'persistent'=>'',
+            'database'=>$db,
+            'password'=>$password,
+            'master'=>$master
+        );
+        return $config;
+    }
+    /**
+     * @param array $options
+     * @return Cm_Cache_Backend_Redis
+     */
+    protected function _initSentinel($options)
+    {
+        $backendConfig = $this->_initBackendConfig($options);
+        $masterName = isset($options['master_name']) ? $options['master_name'] : 'master';
+        $selectRandomSlave = isset($options['select_random_slave']) && ($options['select_random_slave'] || $options['select_random_slave'] == 'true');
+        $readOnMaster = !isset($options['read_on_master']) || ($options['read_on_master'] || $options['read_on_master'] == 'true');
+        $debug = isset($options['debug']) && ($options['debug'] || $options['debug'] == 'true');
+        $sentinel = new Credis_Sentinel(new Credis_Client($backendConfig['host'],$backendConfig['port']));
+        $this->_redis = $sentinel->getCluster($masterName,$selectRandomSlave,$readOnMaster,$debug);
+        return $this;
+    }
+    /**
+     * @param array $options
+     * @return Cm_Cache_Backend_Redis
+     */
+    protected function _initMultiSentinel($options)
+    {
+        if( !is_array($options['servers']) ) {
+            Zend_Cache::throwException('Redis \'servers\' config should be an array. Got \''.gettype($options['servers']).'\'');
+        }
+        $server = $options['servers'][rand(0,count($options['servers'])-1)];
+        $options['host'] = $server['host'];
+        $options['port'] = $server['port'];
+        return $this->_initSentinel($options);
+    }
+    /**
+     * @param array $options
+     * @return Cm_Cache_Backend_Redis
+     */
+    protected function _initRedisClient($options)
+    {
+        $backendConfig = $this->_initBackendConfig($options);
+        $persistent = isset($options['persistent']) ? $options['persistent'] : '';
+        $this->_redis = new Credis_Client(
+            $backendConfig['host'],
+            $backendConfig['port'],
+            $backendConfig['timeout'],
+            $persistent,
+            $backendConfig['database'],
+            $backendConfig['password']
+        );
+        $this->_initRedisConfig($this->_redis, $options);
+        return $this;
+    }
+    /**
+     * @param array $options
+     * @return Cm_Cache_Backend_Redis
+     */
+    protected function _initRedisCluster($options)
+    {
+        if( !is_array($options['servers']) ) {
+            Zend_Cache::throwException('Redis \'servers\' config should be an array. Got \''.gettype($options['servers']).'\'');
+        }
+        $servers = array();
+        foreach( $options['servers'] as $server) {
+            $servers[] = $this->_initBackendConfig($server);
+        }
+        $replicas = isset($options['replicas'])?(int)$options['replicas']:128;
+        $readOnMaster = !isset($options['read_on_master']) || ($options['read_on_master'] || $options['read_on_master'] == 'true');
+        $debug = isset($options['debug']) && ($options['debug'] || $options['debug'] == 'true');
+        $this->_redis = new Credis_Cluster($servers, $replicas, $readOnMaster, $debug);
+        foreach($this->_redis->clients() as $client) {
+            $this->_initRedisConfig($client,$options['servers']);
+        }
+        return $this;
+    }
+    /**
+     * Configure Credis_Client options
+     * @param Credis_Client $redis
+     * @param array $options
+     */
+    protected function _initRedisConfig(\Credis_Client $redis, $options)
+    {
+        if ( isset($options['force_standalone']) && $options['force_standalone']) {
+            $redis->forceStandalone();
+        }
+
+        $connectRetries = isset($options['connect_retries']) ? (int)$options['connect_retries'] : self::DEFAULT_CONNECT_RETRIES;
+        $redis->setMaxConnectRetries($connectRetries);
+
+        if ( ! empty($options['read_timeout']) && $options['read_timeout'] > 0) {
+            $redis->setReadTimeout((float) $options['read_timeout']);
+        }
+    }
     /**
      * Load value with given id from cache
      *
