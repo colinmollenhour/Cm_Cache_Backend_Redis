@@ -125,6 +125,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ( empty($options['port']) && substr($options['server'],0,1) != '/' ) {
             Zend_Cache::throwException('Redis \'port\' not specified.');
         }
+        
+        // Check for fail over event.
+	     $options = $this->checkRedis($options);
 
         $port = isset($options['port']) ? $options['port'] : NULL;
         $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
@@ -219,6 +222,31 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_autoExpireRefreshOnLoad = (bool) $options['auto_expire_refresh_on_load'];
         }
     }
+    
+    /**
+     * @param $options
+     * @return array
+     * Author: Adam Hall (adamhall@mytuxedo.co.uk)
+     * Checks to see if Redis is online, and if not; use the fail over ip, requires pecl redis.
+     */
+    public function checkRedis($options)
+    {
+	$extension = extension_loaded('redis');
+	if($extension && $options['failover_enabled']) {
+	    $redis = new Redis();
+	    $connect = $redis->connect($options['server'], $options['port']);
+	    if($connect == false) {
+	        $options['server'] = $options['failover'];
+		$options['port'] = $options['failover_port'];
+		return $options;
+	    }
+	    $redis->close();
+	    return $options;
+	}
+	else {
+	    return $options;
+	}
+     }
 
     /**
      * Load value with given id from cache
