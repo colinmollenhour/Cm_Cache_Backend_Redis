@@ -185,7 +185,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
             // Optionally use read slaves - will only be used for 'load' operation
             if (isset($options['load_from_slaves']) && $options['load_from_slaves']) {
-                $slaves = $sentinel->getRandomSlaveClient($options['sentinel_master_set']);
+                $slaves = $sentinel->getSlaveClients($options['sentinel_master_set']);
                 if ($slaves) {
                     $slaveKey = array_rand($slaves, 1);
                     $slave = $slaves[$slaveKey]; /* @var $slave Credis_Client */
