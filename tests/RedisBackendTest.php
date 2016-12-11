@@ -43,6 +43,10 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
 
     protected $forceStandalone = FALSE;
 
+    protected $autoExpireLifetime = 0;
+
+    protected $autoExpireRefreshOnLoad = 0;
+
     /** @var Cm_Cache_Backend_Redis */
     protected $_instance;
 
@@ -63,6 +67,8 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'compression_lib' => 'gzip',
             'use_lua' => TRUE,
             'lua_max_c_stack' => self::LUA_MAX_C_STACK,
+            'auto_expire_lifetime' => $this->autoExpireLifetime,
+            'auto_expire_refresh_on_load' => $this->autoExpireRefreshOnLoad,
         ));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
         $this->_instance->___scriptFlush();
