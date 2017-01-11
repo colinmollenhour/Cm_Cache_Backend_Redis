@@ -141,6 +141,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $port = isset($options['port']) ? $options['port'] : NULL;
         $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
         $persistent = isset($options['persistent']) ? $options['persistent'] : '';
+        $slaveSelect = isset($options['slave-select']) && is_callable($options['slave-select']) ? $options['slave-select'] : null;
 
         $this->_clientOptions = new stdClass();
         $this->_clientOptions->forceStandalone = isset($options['force_standalone']) && $options['force_standalone'];
@@ -197,8 +198,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             if (isset($options['load_from_slaves']) && $options['load_from_slaves']) {
                 $slaves = $sentinel->getSlaveClients($options['sentinel_master_set']);
                 if ($slaves) {
-                    $slaveKey = array_rand($slaves, 1);
-                    $slave = $slaves[$slaveKey]; /* @var $slave Credis_Client */
+                    if ($slaveSelect) {
+                        $slave = $slaveSelect($slaves);
+                        if ($slave && !($slave instanceof Credis_Client)) {
+                            $slave = null;
+                        }
+                    } else {
+                        $slaveKey = array_rand($slaves, 1);
+                        $slave = $slaves[$slaveKey]; /* @var $slave Credis_Client */
+                    }
                     try {
                         $this->_applyClientOptions($slave, TRUE);
                         $this->_slave = $slave;
