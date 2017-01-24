@@ -92,6 +92,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /** @var bool */
     protected $_useLua = false;
 
+    /** @var integer */
+    protected $_autoExpireLifetime = 0;
+
+    /** @var string */
+    protected $_autoExpirePattern = '/REQEST/';
+
+    /** @var boolean */
+    protected $_autoExpireRefreshOnLoad = false;
+
     /**
      * Lua's unpack() has a limit on the size of the table imposed by
      * the number of Lua stack slots that a C function can use.
@@ -115,8 +124,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_slave;
 
     /**
-     * Contruct Zend_Cache Redis backend
+     * Construct Zend_Cache Redis backend
      * @param array $options
+     * @return \Cm_Cache_Backend_Redis
      */
     public function __construct($options = array())
     {
@@ -131,6 +141,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $port = isset($options['port']) ? $options['port'] : NULL;
         $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
         $persistent = isset($options['persistent']) ? $options['persistent'] : '';
+        $slaveSelect = isset($options['slave-select']) && is_callable($options['slave-select']) ? $options['slave-select'] : null;
 
         $this->_clientOptions = new stdClass();
         $this->_clientOptions->forceStandalone = isset($options['force_standalone']) && $options['force_standalone'];
@@ -187,8 +198,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             if (isset($options['load_from_slaves']) && $options['load_from_slaves']) {
                 $slaves = $sentinel->getSlaveClients($options['sentinel_master_set']);
                 if ($slaves) {
-                    $slaveKey = array_rand($slaves, 1);
-                    $slave = $slaves[$slaveKey]; /* @var $slave Credis_Client */
+                    if ($slaveSelect) {
+                        $slave = $slaveSelect($slaves);
+                        if ($slave && !($slave instanceof Credis_Client)) {
+                            $slave = null;
+                        }
+                    } else {
+                        $slaveKey = array_rand($slaves, 1);
+                        $slave = $slaves[$slaveKey]; /* @var $slave Credis_Client */
+                    }
                     try {
                         $this->_applyClientOptions($slave, TRUE);
                         $this->_slave = $slave;
@@ -271,6 +289,18 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if (isset($options['lua_max_c_stack'])) {
             $this->_luaMaxCStack = (int) $options['lua_max_c_stack'];
         }
+
+        if (isset($options['auto_expire_lifetime'])) {
+            $this->_autoExpireLifetime = (int) $options['auto_expire_lifetime'];
+        }
+
+        if (isset($options['auto_expire_pattern'])) {
+            $this->_autoExpirePattern = (string) $options['auto_expire_pattern'];
+        }
+
+        if (isset($options['auto_expire_refresh_on_load'])) {
+            $this->_autoExpireRefreshOnLoad = (bool) $options['auto_expire_refresh_on_load'];
+        }
     }
 
     /**
@@ -317,7 +347,21 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ($data === NULL) {
             return FALSE;
         }
-        return $this->_decodeData($data);
+
+        $decoded = $this->_decodeData($data);
+
+        if ($this->_autoExpireLifetime === 0 || !$this->_autoExpireRefreshOnLoad) {
+            return $decoded;
+        }
+
+        $matches = $this->_matchesAutoExpiringPattern($id);
+        if (!$matches) {
+            return $decoded;
+        }
+
+        $this->_redis->expire(self::PREFIX_KEY.$id, min($this->_autoExpireLifetime, self::MAX_LIFETIME));
+
+        return $decoded;
     }
 
     /**
@@ -353,7 +397,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         else
             $tags = array_flip(array_flip($tags));
 
-        $lifetime = $this->getLifetime($specificLifetime);
+        $lifetime = $this->_getAutoExpiringLifetime($this->getLifetime($specificLifetime), $id);
 
         if ($this->_useLua) {
             $sArgs = array(
@@ -803,6 +847,46 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ($lifetime > self::MAX_LIFETIME) {
             Zend_Cache::throwException('Redis backend has a limit of 30 days (2592000 seconds) for the lifetime');
         }
+    }
+
+    /**
+     * Get the auto expiring lifetime.
+     *
+     * Mainly a workaround for the issues that arise due to the fact that
+     * Magento's Enterprise_PageCache module doesn't set any expiry.
+     *
+     * @param  int $specificLifetime
+     * @param  string $id
+     * @return int Cache life time
+     */
+    protected function _getAutoExpiringLifetime($lifetime, $id)
+    {
+        if ($lifetime || !$this->_autoExpireLifetime) {
+            // If it's already truthy, or there's no auto expire go with it.
+            return $lifetime;
+        }
+
+        $matches = $this->_matchesAutoExpiringPattern($id);
+        if (!$matches) {
+            // Only apply auto expire for keys that match the pattern
+            return $lifetime;
+        }
+
+        if ($this->_autoExpireLifetime > 0) {
+            // Return the auto expire lifetime if set
+            return $this->_autoExpireLifetime;
+        }
+
+        // Return whatever it was set to.
+        return $lifetime;
+    }
+
+    protected function _matchesAutoExpiringPattern($id)
+    {
+        $matches = array();
+        preg_match($this->_autoExpirePattern, $id, $matches);
+
+        return !empty($matches);
     }
 
     /**

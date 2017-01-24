@@ -13,6 +13,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Supports unix socket connection for even better performance on a single machine.
  - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
  - Uses transactions to prevent race conditions between saves, cleans or removes causing unexpected results.
+ - Supports a configurable "auto expiry lifetime" which, if set, will be used as the TTL when the key otherwise wouldn't expire. In combination with "auto expiry refresh on load" offers a more sane cache management strategy for Magento's `Enterprise_PageCache` module.
  - __Unit tested!__
 
 ## INSTALLATION (Magento)
@@ -66,6 +67,8 @@ Works with any Zend Framework project including all versions of Magento!
             <connect_retries>1</connect_retries>    <!-- Reduces errors due to random connection failures -->
             <lifetimelimit>57600</lifetimelimit>    <!-- 16 hours of lifetime for cache record -->
             <compress_data>0</compress_data>        <!-- DISABLE compression for EE FPC since it already uses compression -->
+            <auto_expire_lifetime></auto_expire_lifetime> <!-- Force an expiry (Enterprise_PageCache will not set one) -->
+            <auto_expire_refresh_on_load></auto_expire_refresh_on_load> <!-- Refresh keys when loaded (Keeps cache primed frequently requested resources) -->
           </backend_options>
         </full_page_cache>
 
