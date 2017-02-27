@@ -201,18 +201,17 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 if ($slaves) {
                     if ($slaveSelect) {
                         $slave = $slaveSelect($slaves, $this->_redis);
-                        if ($slave && !($slave instanceof Credis_Client)) {
-                            $slave = null;
-                        }
                     } else {
                         $slaveKey = array_rand($slaves, 1);
                         $slave = $slaves[$slaveKey]; /* @var $slave Credis_Client */
                     }
-                    try {
-                        $this->_applyClientOptions($slave, TRUE);
-                        $this->_slave = $slave;
-                    } catch (Exception $e) {
-                        // If there is a problem with first slave then skip 'load_from_slaves' option
+                    if ($slave instanceof Credis_Client) {
+                        try {
+                            $this->_applyClientOptions($slave, TRUE);
+                            $this->_slave = $slave;
+                        } catch (Exception $e) {
+                            // If there is a problem with first slave then skip 'load_from_slaves' option
+                        }
                     }
                 }
             }
