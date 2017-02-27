@@ -141,7 +141,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $port = isset($options['port']) ? $options['port'] : NULL;
         $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
         $persistent = isset($options['persistent']) ? $options['persistent'] : '';
-        $sentinelPersistent = isset($options['persistent']) ? $options['sentinel_persistent'] : $persistent;        
+        $sentinelPersistent = isset($options['sentinel_persistent']) ? $options['sentinel_persistent'] : $persistent;        
         $slaveSelect = isset($options['slave-select']) && is_callable($options['slave-select']) ? $options['slave-select'] : null;
 
         $this->_clientOptions = new stdClass();
