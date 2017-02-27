@@ -141,6 +141,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $port = isset($options['port']) ? $options['port'] : NULL;
         $timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
         $persistent = isset($options['persistent']) ? $options['persistent'] : '';
+        $sentinelPersistent = isset($options['persistent']) ? $options['sentinel_persistent'] : $persistent;        
         $slaveSelect = isset($options['slave-select']) && is_callable($options['slave-select']) ? $options['slave-select'] : null;
 
         $this->_clientOptions = new stdClass();
@@ -158,7 +159,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $exception = NULL;
             foreach ($servers as $server) {
                 try {
-                    $sentinelClient = new Credis_Client($server, NULL, $timeout, $persistent);
+                    $sentinelClient = new Credis_Client($server, NULL, $timeout, $sentinelPersistent);
                     $sentinelClient->forceStandalone();
                     $sentinelClient->setMaxConnectRetries($this->_clientOptions->connectRetries);
                     if ($this->_clientOptions->readTimeout) {
