@@ -192,7 +192,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 }
             }
             if ( ! $this->_redis) {
-                Zend_Cache::throwException('Unable to connect to a redis sentinel: '.$exception->getMessage());
+                Zend_Cache::throwException('Unable to connect to a redis sentinel: '.$exception->getMessage(), $exception);
             }
 
             // Optionally use read slaves - will only be used for 'load' operation
