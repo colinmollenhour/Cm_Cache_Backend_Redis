@@ -79,8 +79,8 @@ There are two supported methods of achieving High Availability and Load Balancin
 ### Redis Sentinel
 
 You may achieve high availability and load balancing using [Redis Sentinel](http://redis.io/topics/sentinel). To enable use of Redis Sentinel the `server`
-specified should be a comma-separated list of Sentinel servers and the `sentinel_master_set` option should be specified
-to indicate the name of the sentinel master set (e.g. 'mymaster'). If using `sentinel_master_set` you may also specify
+specified should be a comma-separated list of Sentinel servers and the `sentinel_master` option should be specified
+to indicate the name of the sentinel master set (e.g. 'mymaster'). If using `sentinel_master` you may also specify
 `load_from_slaves` in which case a random slave will be chosen for performing reads in order to load balance across multiple Redis instances.
 
 Example configuration:
@@ -89,9 +89,10 @@ Example configuration:
         <cache>
           <backend>Cm_Cache_Backend_Redis</backend>
           <backend_options>
-            <server>tcp://10.0.0.1:6380,tcp://10.0.0.2:6380,tcp://10.0.0.3:6380</server>
+            <server>tcp://10.0.0.1:26379,tcp://10.0.0.2:26379,tcp://10.0.0.3:26379</server>
             <timeout>0.5</timeout>
-            <sentinel_master_set>mymaster</sentinel_master_set>
+            <sentinel_master>mymaster</sentinel_master>
+            <sentinel_master_cache>1</sentinel_master_cache>
             <load_from_slaves>1</load_from_slaves>
           </backend_options>
         </cache>
