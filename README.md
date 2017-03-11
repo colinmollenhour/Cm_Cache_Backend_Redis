@@ -97,14 +97,15 @@ Example configuration:
           </backend_options>
         </cache>
 
-### HAProxy
+### Load Balancer or Service Discovery
 
-It is also possible to achieve high availability by using HAProxy with checks configured to only route connections to the
-master. You can also optionally achieve load balancing in this scenario with a separate HAProxy config which allows connections to
-all healthy nodes, or by using technologies like Docker Swarm Mode's "Virtual IP" or any other DNS-based service discovery
-that uses round-robin DNS. The `load_from_slave` option has been added for this purpose and this option does *not*
+It is also possible to achieve high availability by using other methods where you can specify separate connection addresses for the
+master and slave(s). The `load_from_slave` option has been added for this purpose and this option does *not*
 connect to a Sentinel server as the example above, although you probably would benefit from still having a Sentinel setup purely for
 the easier replication and failover.
+
+Examples would be to use a TCP load balancer (e.g. HAProxy) with separate ports for master and slaves, or a DNS-based system that
+uses service discovery health checks to expose master and slaves via different DNS names. 
 
 Example configuration:
 
@@ -112,8 +113,8 @@ Example configuration:
         <cache>
           <backend>Cm_Cache_Backend_Redis</backend>
           <backend_options>
-            <server>tcp://redis-master-haproxy:6379</server>
-            <load_from_slave>tcp://redis-slaves-haproxy:6379</load_from_slave>
+            <server>tcp://redis-master:6379</server>
+            <load_from_slave>tcp://redis-slaves:6379</load_from_slave>
             <timeout>0.5</timeout>
           </backend_options>
         </cache>
@@ -153,6 +154,7 @@ Example configuration:
 
 ## Release Notes
 
+ - March 2017: Added support for Redis Sentinel and loading from slaves. Thanks @Xon for the help!
  - Sometime in 2013: Ceased updating these release notes...
  - November 19, 2012: Added read_timeout option. (Feature only supported in standalone mode, will be supported by phpredis when pull request #260 is merged)
  - October 29, 2012: Added support for persistent connections. (Thanks samm-git!)
