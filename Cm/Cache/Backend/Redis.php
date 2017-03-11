@@ -59,6 +59,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const LUA_CLEAN_SH1 = '42ab2fe548aee5ff540123687a2c39a38b54e4a2';
     const LUA_GC_SH1 = 'c00416b970f1aa6363b44965d4cf60ee99a6f065';
 
+    const SENTINEL_CACHE_KEY = 'cm_cache_redis:sentinel';
+
     /** @var Credis_Client */
     protected $_redis;
 
@@ -152,12 +154,26 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         $port = isset($options['port']) ? $options['port'] : NULL;
-        $slaveSelect = isset($options['slave-select']) && is_callable($options['slave-select']) ? $options['slave-select'] : null;
+        $slaveSelect = isset($options['slave_select_callable']) && is_callable($options['slave_select_callable']) ? $options['slave_select_callable'] : null;
+        $sentinelMaster =  empty($options['sentinel_master']) ? NULL : $options['sentinel_master'];
 
         $this->_clientOptions = $this->getClientOptions($options);
 
+        // Try to load selected master from cache
+        if ($sentinelMaster && ! empty($options['sentinel_master_cache']) && function_exists('apcu_fetch')) {
+            $cacheData = apcu_fetch(self::SENTINEL_CACHE_KEY);
+            if ($cacheData) {
+                $this->_redis = new Credis_Client($cacheData['master']['host'], $cacheData['master']['port'], $timeout, $persistent);
+                $this->_applyClientOptions($this->_redis);
+                if ( ! empty($cacheData['slave'])) {
+                    $this->_slave = new Credis_Client($cacheData['slave']['host'], $cacheData['slave']['port'], $timeout, $persistent);
+                    $this->_applyClientOptions($this->_slave, TRUE);
+                }
+            }
+        }
+
         // If 'sentinel_master' is specified then server is actually sentinel and master address should be fetched from server.
-        if ( ! empty($options['sentinel_master_set'])) {
+        if ($sentinelMaster && ! $this->_redis) {
             $sentinelClientOptions = isset($options['sentinel']) && is_array($options['sentinel']) 
                                      ? $this->getClientOptions($options['sentinel'] + $options)
                                      : $this->_clientOptions;
@@ -180,18 +196,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     $sentinel
                         ->setClientTimeout($this->_clientOptions->timeout)
                         ->setClientPersistent($this->_clientOptions->persistent);
-                    $redisMaster = $sentinel->getMasterClient($options['sentinel_master_set']);
+                    $redisMaster = $sentinel->getMasterClient($sentinelMaster);
                     $this->_applyClientOptions($redisMaster);
-                    $roleData = $redisMaster->role();
-                    if ( ! $roleData || $roleData[0] != 'master') {
-                        usleep(100000); // Sleep 100ms and try again
-                        $redisMaster = $sentinel->getMasterClient($options['sentinel_master_set']);
-                        $this->_applyClientOptions($redisMaster);
-                        $roleData = $redisMaster->role();
-                        if ( ! $roleData || $roleData[0] != 'master') {
-                            Zend_Cache::throwException('Unable to determine master redis server.');
-                        }
-                    }
                     $this->_redis = $redisMaster;
                     break;
                 } catch (Exception $e) {
@@ -203,8 +209,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             }
 
             // Optionally use read slaves - will only be used for 'load' operation
-            if (isset($options['load_from_slaves']) && $options['load_from_slaves']) {
-                $slaves = $sentinel->getSlaveClients($options['sentinel_master_set']);
+            if ( ! empty($options['load_from_slaves'])) {
+                $slaves = $sentinel->getSlaveClients($sentinelMaster);
                 if ($slaves) {
                     if ($slaveSelect) {
                         $slave = $slaveSelect($slaves, $this->_redis);
@@ -223,10 +229,20 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 }
             }
             unset($sentinel);
+
+            // Cache data in memory to skip sentinel
+            if ( ! empty($options['sentinel_master_cache']) && function_exists('apcu_fetch')) {
+                $cacheData = ['master' => ['host' => $this->_redis->getHost(), 'port' => $this->_redis->getPort()]];
+                if ($this->_slave) {
+                    $cacheData['slave'] = ['host' => $this->_slave->getHost(), 'port' => $this->_slave->getPort()];
+                }
+                // Save master/slave data from 1 to 15 seconds
+                apcu_store(self::SENTINEL_CACHE_KEY, $cacheData, min(15,max(1,(int)$options['sentinel_master_cache'])));
+            }
         }
 
         // Direct connection to single Redis server
-        else {
+        else if ( ! $sentinelMaster ) {
             $this->_redis = new Credis_Client($options['server'], $port, $this->_clientOptions->timeout, $this->_clientOptions->persistent);
             $this->_applyClientOptions($this->_redis);
 
