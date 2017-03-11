@@ -92,7 +92,7 @@ Example configuration:
             <server>tcp://10.0.0.1:26379,tcp://10.0.0.2:26379,tcp://10.0.0.3:26379</server>
             <timeout>0.5</timeout>
             <sentinel_master>mymaster</sentinel_master>
-            <sentinel_master_cache>1</sentinel_master_cache>
+            <sentinel_master_verify>1</sentinel_master_verify>
             <load_from_slaves>1</load_from_slaves>
           </backend_options>
         </cache>
