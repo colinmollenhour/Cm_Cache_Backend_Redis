@@ -350,7 +350,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         if ($clientOptions->password) {
-            $client->auth($clientOptions>password) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
+            $client->auth($clientOptions->password) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
         }
 
         // Always select database when persistent is used in case connection is re-used by other clients
