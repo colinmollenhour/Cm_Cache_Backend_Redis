@@ -147,11 +147,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             Zend_Cache::throwException('Redis \'server\' not specified.');
         }
 
-        if ( empty($options['port']) && substr($options['server'],0,1) != '/' ) {
-            Zend_Cache::throwException('Redis \'port\' not specified.');
-        }
-
-        $port = isset($options['port']) ? $options['port'] : NULL;
+        $port = isset($options['port']) ? $options['port'] : 6379;
         $slaveSelect = isset($options['slave_select_callable']) && is_callable($options['slave_select_callable']) ? $options['slave_select_callable'] : null;
         $sentinelMaster =  empty($options['sentinel_master']) ? NULL : $options['sentinel_master'];
 
