@@ -82,6 +82,7 @@ You may achieve high availability and load balancing using [Redis Sentinel](http
 specified should be a comma-separated list of Sentinel servers and the `sentinel_master` option should be specified
 to indicate the name of the sentinel master set (e.g. 'mymaster'). If using `sentinel_master` you may also specify
 `load_from_slaves` in which case a random slave will be chosen for performing reads in order to load balance across multiple Redis instances.
+Using the value '1' indicates to only load from slaves and '2' to include the master in the random read slave selection.
 
 Example configuration:
 
