@@ -165,11 +165,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $servers = preg_split('/\s*,\s*/', trim($options['server']), NULL, PREG_SPLIT_NO_EMPTY);
             $sentinel = NULL;
             $exception = NULL;
+            for ($i = 0; $i <= $sentinelClientOptions->connectRetries; $i++) // Try each sentinel in round-robin fashion
             foreach ($servers as $server) {
                 try {
                     $sentinelClient = new Credis_Client($server, NULL, $sentinelClientOptions->timeout, $sentinelClientOptions->persistent);
                     $sentinelClient->forceStandalone();
-                    $sentinelClient->setMaxConnectRetries($sentinelClientOptions->connectRetries);
+                    $sentinelClient->setMaxConnectRetries(0);
                     if ($sentinelClientOptions->readTimeout) {
                         $sentinelClient->setReadTimeout($sentinelClientOptions->readTimeout);
                     }
@@ -199,8 +200,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     }
 
                     $this->_redis = $redisMaster;
-                    break;
+                    break 2;
                 } catch (Exception $e) {
+                    unset($sentinelClient);
                     $exception = $e;
                 }
             }
