@@ -17,7 +17,7 @@ require __DIR__.'/lib/Credis/Client.php';
 require './lib/Zend/Cache/Backend/Interface.php';
 require './lib/Zend/Cache/Backend/ExtendedInterface.php';
 require './lib/Zend/Cache/Backend.php';
-require __DIR__.'/Cm/Cache/Backend/Redis.php';
+require __DIR__.'/app/code/community/Cm/Cache/Backend/Redis.php';
 
 $client = new Credis_Client($server);
 $client->select($db);
