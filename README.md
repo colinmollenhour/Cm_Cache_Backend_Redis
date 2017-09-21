@@ -120,6 +120,40 @@ Example configuration:
           </backend_options>
         </cache>
 
+## ElastiCache
+
+The following example configuration lets you use ElastiCache Redis (cluster mode disabled) where the writes are sent to the Primary node and reads are sent to the replicas. This lets you distribute the read traffic between the different nodes.  
+
+The instructions to find the primary and read replica endpoints are [here](http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Endpoints.html#Endpoints.Find.Redis).
+
+        <!-- This is a child node of config/global/cache -->
+        <backend_options>
+          <server>primary-endpoint.0001.euw1.cache.amazonaws.com</server>
+          <port>6379</port>
+          <database>0</database>        <!-- Make sure database is 0 -->
+          .
+          . <!-- Other settings -->
+          .
+          <cluster>
+            <master>
+              <node-001>
+                <server>primary-endpoint.0001.euw1.cache.amazonaws.com</server>
+                <port>6379</port>
+              </node-001>
+            </master>
+            <slave>
+              <node-001>
+                <server>replica-endpoint-1.jwbaun.0001.euw1.cache.amazonaws.com</server>
+                <port>6379</port>
+              </node-001>
+              <node-002>
+                <server>replica-endpoint-2.jwbaun.0001.euw1.cache.amazonaws.com</server>
+                <port>6379</port>
+              </node-002>
+            </slave>
+          </cluster>
+        </backend_options>
+
 ## RELATED / TUNING
 
  - The recommended "maxmemory-policy" is "volatile-lru". All tag metadata is non-volatile so it is
