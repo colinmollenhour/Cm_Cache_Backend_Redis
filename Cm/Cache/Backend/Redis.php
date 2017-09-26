@@ -232,6 +232,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             unset($sentinel);
         }
 
+        elseif (class_exists('Credis_Cluster') && array_key_exists('cluster', $options) && !empty($options['cluster'])) {
+            $this->_setupReadWriteCluster($options);
+        }
+
         // Direct connection to single Redis server
         else {
             $this->_redis = new Credis_Client($options['server'], $port, $this->_clientOptions->timeout, $this->_clientOptions->persistent);
@@ -357,6 +361,53 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         // Always select database when persistent is used in case connection is re-used by other clients
         if ($forceSelect || $clientOptions->database || $client->getPersistence()) {
             $client->select($clientOptions->database) or Zend_Cache::throwException('The redis database could not be selected.');
+        }
+    }
+
+    protected function _setupReadWriteCluster($options) {
+        $clusterNodes = array();
+
+        if (array_key_exists('master', $options['cluster']) && !empty($options['cluster']['master'])) {
+            foreach ($options['cluster']['master'] as $masterNode) {
+                if (empty($masterNode['server']) || empty($masterNode['port'])) {
+                    continue;
+                }
+
+                $clusterNodes[] = array(
+                    'host'       => $masterNode['server'],
+                    'port'       => $masterNode['port'],
+                    'alias'      => 'master',
+                    'master'     => true,
+                    'write_only' => true,
+                    'timeout'    => $this->_clientOptions->timeout,
+                    'persistent' => $this->_clientOptions->persistent,
+                    'db'         => (int) $options['database'],
+                );
+
+                break; // limit to 1
+            }
+        }
+
+        if (!empty($clusterNodes) && array_key_exists('slave', $options['cluster']) && !empty($options['cluster']['slave'])) {
+            foreach ($options['cluster']['slave'] as $slaveNodes) {
+                if (empty($masterNode['server']) || empty($masterNode['port'])) {
+                    continue;
+                }
+
+                $clusterNodes[] = array(
+                    'host'       => $slaveNodes['server'],
+                    'port'       => $slaveNodes['port'],
+                    'alias'      => 'slave' . count($clusterNodes),
+                    'timeout'    => $this->_clientOptions->timeout,
+                    'persistent' => $this->_clientOptions->persistent,
+                    'db'         => (int) $options['database'],
+                    'password'   => $options['password'],
+                );
+            }
+        }
+
+        if (!empty($clusterNodes)) {
+            $this->_redis = new Credis_Cluster($clusterNodes);
         }
     }
 
