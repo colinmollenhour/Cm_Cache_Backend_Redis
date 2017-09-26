@@ -68,10 +68,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /** @var int */
     protected $_lifetimelimit = self::MAX_LIFETIME; /* Redis backend limit */
 
-    /** @var int */
+    /** @var int|bool */
     protected $_compressTags = 1;
 
-    /** @var int */
+    /** @var int|bool */
     protected $_compressData = 1;
 
     /** @var int */
@@ -298,6 +298,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_compressionLib = 'snappy';
         }
         else if ( function_exists('lz4_compress')) {
+            $version = phpversion("lz4");
+            if (version_compare($version, "0.3.0") < 0)
+            {
+                $this->_compressTags = $this->_compressTags > 1 ? true : false;
+                $this->_compressData = $this->_compressData > 1 ? true : false;
+            }
             $this->_compressionLib = 'l4z';
         }
         else if ( function_exists('lzf_compress') ) {
@@ -1155,11 +1161,11 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _encodeData($data, $level)
     {
-        if ($this->_compressionLib && $level && strlen($data) >= $this->_compressThreshold) {
+        if ($this->_compressionLib && $level !== 0 && strlen($data) >= $this->_compressThreshold) {
             switch($this->_compressionLib) {
                 case 'snappy': $data = snappy_compress($data); break;
                 case 'lzf':    $data = lzf_compress($data); break;
-                case 'l4z':    $data = lz4_compress($data,($level > 1 ? true : false)); break;
+                case 'l4z':    $data = lz4_compress($data, $level); break;
                 case 'gzip':   $data = gzcompress($data, $level); break;
                 default:       throw new CredisException("Unrecognized 'compression_lib'.");
             }
