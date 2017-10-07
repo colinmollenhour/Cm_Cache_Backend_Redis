@@ -283,6 +283,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         if ( isset($options['compress_threshold'])) {
             $this->_compressThreshold = (int) $options['compress_threshold'];
+            if ($this->_compressThreshold < 1) {
+                $this->_compressThreshold = 1;
+            }
         }
 
         if ( isset($options['automatic_cleaning_factor']) ) {
