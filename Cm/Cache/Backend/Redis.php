@@ -1302,14 +1302,19 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _decodeData($data)
     {
-        if (substr($data,2,3) == self::COMPRESS_PREFIX) {
-            switch(substr($data,0,2)) {
-                case 'sn': return snappy_uncompress(substr($data,5));
-                case 'lz': return lzf_decompress(substr($data,5));
-                case 'l4': return lz4_uncompress(substr($data,5));
-                case 'zs': return zstd_uncompress(substr($data,5));
-                case 'gz': case 'zc': return gzuncompress(substr($data,5));
+        try {
+            if (substr($data,2,3) == self::COMPRESS_PREFIX) {
+                switch(substr($data,0,2)) {
+                    case 'sn': return snappy_uncompress(substr($data,5));
+                    case 'lz': return lzf_decompress(substr($data,5));
+                    case 'l4': return lz4_uncompress(substr($data,5));
+                    case 'zs': return zstd_uncompress(substr($data,5));
+                    case 'gz': case 'zc': return gzuncompress(substr($data,5));
+                }
             }
+        } catch(Exception $e) {
+            // Some applications will capture the php error that these functions can sometimes generate and throw it as an Exception
+            $data = false;
         }
         return $data;
     }
