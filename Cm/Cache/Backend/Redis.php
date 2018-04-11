@@ -309,6 +309,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             }
             $this->_compressionLib = 'l4z';
         }
+        else if ( function_exists('zstd_compress')) {
+            $version = phpversion("zstd");
+            if (version_compare($version, "0.4.13") < 0)
+            {
+                $this->_compressTags = $this->_compressTags > 1 ? true : false;
+                $this->_compressData = $this->_compressData > 1 ? true : false;
+            }
+            $this->_compressionLib = 'zstd';
+        }
         else if ( function_exists('lzf_compress') ) {
             $this->_compressionLib = 'lzf';
         }
@@ -1171,6 +1180,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 case 'snappy': $data = snappy_compress($data); break;
                 case 'lzf':    $data = lzf_compress($data); break;
                 case 'l4z':    $data = lz4_compress($data, $level); break;
+                case 'zstd':   $data = zstd_compress($data, $level); break;
                 case 'gzip':   $data = gzcompress($data, $level); break;
                 default:       throw new CredisException("Unrecognized 'compression_lib'.");
             }
@@ -1193,6 +1203,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 case 'sn': return snappy_uncompress(substr($data,5));
                 case 'lz': return lzf_decompress(substr($data,5));
                 case 'l4': return lz4_uncompress(substr($data,5));
+                case 'zs': return zstd_uncompress(substr($data,5));
                 case 'gz': case 'zc': return gzuncompress(substr($data,5));
             }
         }
