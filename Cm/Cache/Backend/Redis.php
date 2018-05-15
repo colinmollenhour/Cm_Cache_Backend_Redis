@@ -232,7 +232,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             unset($sentinel);
         }
 
-        elseif (class_exists('Credis_Cluster') && array_key_exists('cluster', $options) && !empty($options['cluster'])) {
+        // Instantiate Credis_Cluster
+        else if ( ! empty($options['cluster'])) {
             $this->_setupReadWriteCluster($options);
         }
 
