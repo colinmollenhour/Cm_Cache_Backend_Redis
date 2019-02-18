@@ -494,6 +494,25 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     }
 
     /**
+     * Get the life time
+     *
+     * if $specificLifetime is not false, the given specific life time is used
+     * else, the global lifetime is used
+     *
+     * @param  int $specificLifetime
+     * @return int Cache life time
+     */
+    public function getLifetime($specificLifetime)
+    {
+        // Lifetimes set via Layout XMLs get parsed as string so bool(false) becomes string("false")
+        if ($specificLifetime === 'false') {
+            $specificLifetime = false;
+        }
+
+        return parent::getLifetime($specificLifetime);
+    }
+
+    /**
      * Save some string datas into a cache record
      *
      * Note : $data is always "string" (serialization is done by the
