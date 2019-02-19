@@ -150,17 +150,14 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function __construct($options = array())
     {
-        if ( empty($options['server']) ) {
+        if ( empty($options['server']) && empty($options['cluster'])) {
             Zend_Cache::throwException('Redis \'server\' not specified.');
         }
-
-        $port = isset($options['port']) ? $options['port'] : 6379;
-        $slaveSelect = isset($options['slave_select_callable']) && is_callable($options['slave_select_callable']) ? $options['slave_select_callable'] : null;
-        $sentinelMaster =  empty($options['sentinel_master']) ? NULL : $options['sentinel_master'];
 
         $this->_clientOptions = $this->getClientOptions($options);
 
         // If 'sentinel_master' is specified then server is actually sentinel and master address should be fetched from server.
+        $sentinelMaster =  empty($options['sentinel_master']) ? NULL : $options['sentinel_master'];
         if ($sentinelMaster) {
             $sentinelClientOptions = isset($options['sentinel']) && is_array($options['sentinel']) 
                                      ? $this->getClientOptions($options['sentinel'] + $options)
@@ -220,6 +217,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     if ($options['load_from_slaves'] == 2) {
                         array_push($slaves, $this->_redis); // Also send reads to the master
                     }
+                    $slaveSelect = isset($options['slave_select_callable']) && is_callable($options['slave_select_callable']) ? $options['slave_select_callable'] : null;
                     if ($slaveSelect) {
                         $slave = $slaveSelect($slaves, $this->_redis);
                     } else {
@@ -240,28 +238,52 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         // Instantiate Credis_Cluster
+        // DEPRECATED
         else if ( ! empty($options['cluster'])) {
             $this->_setupReadWriteCluster($options);
         }
 
-        // Direct connection to single Redis server
+        // Direct connection to single Redis server and optional slaves
         else {
+            $port = isset($options['port']) ? $options['port'] : 6379;
             $this->_redis = new Credis_Client($options['server'], $port, $this->_clientOptions->timeout, $this->_clientOptions->persistent);
             $this->_applyClientOptions($this->_redis);
 
             // Support loading from a replication slave
             if (isset($options['load_from_slave'])) {
                 if (is_array($options['load_from_slave'])) {
-                    $server = $options['load_from_slave']['server'];
-                    $port = $options['load_from_slave']['port'];
-
-                    $clientOptions = $this->getClientOptions($options['load_from_slave'] + $options);
-                } else {
+                    if (isset($options['load_from_slave']['server'])) {  // Single slave
+                        $server = $options['load_from_slave']['server'];
+                        $port = $options['load_from_slave']['port'];
+                        $clientOptions = $this->getClientOptions($options['load_from_slave'] + $options);
+                        $totalServers = 2;
+                    } else {  // Multiple slaves
+                        $slaveKey = array_rand($options['load_from_slave'], 1);
+                        $slave = $options['load_from_slave'][$slaveKey];
+                        $server = $slave['server'];
+                        $port = $slave['port'];
+                        $clientOptions = $this->getClientOptions($slave + $options);
+                        $totalServers = count($options['load_from_slave']) + 1;
+                    }
+                } else {  // String
                     $server = $options['load_from_slave'];
                     $port = 6379;
                     $clientOptions = $this->_clientOptions;
+
+                    // If multiple addresses are given, split and choose a random one
+                    if (strpos($server, ',') !== FALSE) {
+                        $slaves = preg_split('/\s*,\s*/', $server, -1, PREG_SPLIT_NO_EMPTY);
+                        $slaveKey = array_rand($slaves, 1);
+                        $server = $slaves[$slaveKey];
+                        $port = NULL;
+                        $totalServers = count($slaves) + 1;
+                    } else {
+                        $totalServers = 2;
+                    }
                 }
-                if (is_string($server)) {
+                // Skip setting up slave if master is not write only and it is randomly chosen to be the read server
+                $masterWriteOnly = isset($options['master_write_only']) ? (int) $options['master_write_only'] : FALSE;
+                if (is_string($server) && $server && ! (!$masterWriteOnly && rand(1,$totalServers) === 1)) {
                     try {
                         $slave = new Credis_Client($server, $port, $clientOptions->timeout, $clientOptions->persistent);
                         $this->_applyClientOptions($slave, TRUE, $clientOptions);
@@ -394,50 +416,39 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
     }
 
-    protected function _setupReadWriteCluster($options) {
-        $clusterNodes = array();
-
-        if (array_key_exists('master', $options['cluster']) && !empty($options['cluster']['master'])) {
+    /**
+     * @deprecated - Previously this setup an instance of Credis_Cluster but this class was not complete or flawed
+     * @param $options
+     */
+    protected function _setupReadWriteCluster($options)
+    {
+        if (!empty($options['cluster']['master'])) {
             foreach ($options['cluster']['master'] as $masterNode) {
                 if (empty($masterNode['server']) || empty($masterNode['port'])) {
                     continue;
                 }
 
-                $clusterNodes[] = array(
-                    'host'       => $masterNode['server'],
-                    'port'       => $masterNode['port'],
-                    'alias'      => 'master',
-                    'master'     => true,
-                    'write_only' => true,
-                    'timeout'    => $this->_clientOptions->timeout,
-                    'persistent' => $this->_clientOptions->persistent,
-                    'db'         => (int) $options['database'],
+                $this->_redis = new Credis_Client(
+                    $masterNode['host'],
+                    $masterNode['port'],
+                    isset($masterNode['timeout']) ? $masterNode['timeout'] : 2.5,
+                    isset($masterNode['persistent']) ? $masterNode['persistent'] : ''
                 );
-
-                break; // limit to 1
+                $this->_applyClientOptions($this->_redis);
+                break;
             }
         }
 
-        if (!empty($clusterNodes) && array_key_exists('slave', $options['cluster']) && !empty($options['cluster']['slave'])) {
-            foreach ($options['cluster']['slave'] as $slaveNodes) {
-                if (empty($masterNode['server']) || empty($masterNode['port'])) {
-                    continue;
-                }
-
-                $clusterNodes[] = array(
-                    'host'       => $slaveNodes['server'],
-                    'port'       => $slaveNodes['port'],
-                    'alias'      => 'slave' . count($clusterNodes),
-                    'timeout'    => $this->_clientOptions->timeout,
-                    'persistent' => $this->_clientOptions->persistent,
-                    'db'         => (int) $options['database'],
-                    'password'   => $options['password'],
-                );
-            }
-        }
-
-        if (!empty($clusterNodes)) {
-            $this->_redis = new Credis_Cluster($clusterNodes);
+        if (!empty($options['cluster']['slave'])) {
+            $slaveKey = array_rand($options['cluster']['slave'], 1);
+            $slave = $options['cluster']['slave'][$slaveKey];
+            $this->_slave = new Credis_Client(
+                $slave['host'],
+                $slave['port'],
+                isset($slave['timeout']) ? $slave['timeout'] : 2.5,
+                isset($slave['persistent']) ? $slave['persistent'] : ''
+            );
+            $this->_applyClientOptions($this->_redis, TRUE);
         }
     }
 
