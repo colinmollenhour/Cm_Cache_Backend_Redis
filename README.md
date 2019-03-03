@@ -116,13 +116,31 @@ Example configuration:
           <backend_options>
             <server>tcp://redis-master:6379</server>
             <load_from_slave>tcp://redis-slaves:6379</load_from_slave>
+            <master_write_only>0</master_write_only>  <!-- Use 1 to prevent reads from master -->
+            <timeout>0.5</timeout>
+          </backend_options>
+        </cache>
+
+### Static Configuration
+
+You may also statically specify the master and slave servers by passing either an array to `load_from_slave` or a string
+with multiple addresses separated by a comma.
+
+        <!-- This is a child node of config/global -->
+        <cache>
+          <backend>Cm_Cache_Backend_Redis</backend>
+          <backend_options>
+            <server>tcp://redis-master:6379</server>
+            <load_from_slave>tcp://redis-slave1:6379,tcp://redis-slave2:6379</load_from_slave>
+            <master_write_only>0</master_write_only>  <!-- Use 1 to prevent reads from master -->
             <timeout>0.5</timeout>
           </backend_options>
         </cache>
 
 ## ElastiCache
 
-The following example configuration lets you use ElastiCache Redis (cluster mode disabled) where the writes are sent to the Primary node and reads are sent to the replicas. This lets you distribute the read traffic between the different nodes.  
+The following example configuration lets you use ElastiCache Redis (cluster mode disabled) where the writes are sent to
+the Primary node and reads are sent to the replicas. This lets you distribute the read traffic between the different nodes.  
 
 The instructions to find the primary and read replica endpoints are [here](http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Endpoints.html#Endpoints.Find.Redis).
 
@@ -130,29 +148,25 @@ The instructions to find the primary and read replica endpoints are [here](http:
         <backend_options>
           <server>primary-endpoint.0001.euw1.cache.amazonaws.com</server>
           <port>6379</port>
-          <database>0</database>        <!-- Make sure database is 0 -->
-          .
-          . <!-- Other settings -->
-          .
-          <cluster>
-            <master>
-              <node-001>
-                <server>primary-endpoint.0001.euw1.cache.amazonaws.com</server>
-                <port>6379</port>
-              </node-001>
-            </master>
-            <slave>
-              <node-001>
-                <server>replica-endpoint-1.jwbaun.0001.euw1.cache.amazonaws.com</server>
-                <port>6379</port>
-              </node-001>
-              <node-002>
-                <server>replica-endpoint-2.jwbaun.0001.euw1.cache.amazonaws.com</server>
-                <port>6379</port>
-              </node-002>
-            </slave>
-          </cluster>
+          <database>0</database>                    <!-- Make sure database is 0 -->
+          <master_write_only>1</master_write_only>
+          <load_from_slave>
+            <node-001>
+              <server>replica-endpoint-1.jwbaun.0001.euw1.cache.amazonaws.com</server>
+              <port>6379</port>
+            </node-001>
+            <node-002>
+              <server>replica-endpoint-2.jwbaun.0001.euw1.cache.amazonaws.com</server>
+              <port>6379</port>
+            </node-002>
+          </load_from_slave>
         </backend_options>
+
+#### DEPRECATION NOTICE
+
+Previously the ElastiCache config instructions suggested setting up a `<cluster>` node but this functionality was flawed
+and is no longer supported. The config is still parsed and loaded for backwards-compatibility but chooses a random slave
+to read from rather than using md5 hash of the keys. 
 
 ## RELATED / TUNING
 
