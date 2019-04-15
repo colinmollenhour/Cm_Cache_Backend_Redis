@@ -63,7 +63,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_redis;
 
     /** @var bool */
-    protected $_notMatchingTags = FALSE;
+    protected $_notMatchingTags = false;
 
     /** @var int */
     protected $_lifetimelimit = self::MAX_LIFETIME; /* Redis backend limit */
@@ -135,8 +135,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $clientOptions = new stdClass();
         $clientOptions->forceStandalone = isset($options['force_standalone']) && $options['force_standalone'];
         $clientOptions->connectRetries = isset($options['connect_retries']) ? (int) $options['connect_retries'] : self::DEFAULT_CONNECT_RETRIES;
-        $clientOptions->readTimeout = isset($options['read_timeout']) ? (float) $options['read_timeout'] : NULL;
-        $clientOptions->password = isset($options['password']) ? $options['password'] : NULL;
+        $clientOptions->readTimeout = isset($options['read_timeout']) ? (float) $options['read_timeout'] : null;
+        $clientOptions->password = isset($options['password']) ? $options['password'] : null;
         $clientOptions->database = isset($options['database']) ? (int) $options['database'] : 0;
         $clientOptions->persistent = isset($options['persistent']) ? $options['persistent'] : '';
         $clientOptions->timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
@@ -157,18 +157,18 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $this->_clientOptions = $this->getClientOptions($options);
 
         // If 'sentinel_master' is specified then server is actually sentinel and master address should be fetched from server.
-        $sentinelMaster =  empty($options['sentinel_master']) ? NULL : $options['sentinel_master'];
+        $sentinelMaster =  empty($options['sentinel_master']) ? null : $options['sentinel_master'];
         if ($sentinelMaster) {
             $sentinelClientOptions = isset($options['sentinel']) && is_array($options['sentinel']) 
                                      ? $this->getClientOptions($options['sentinel'] + $options)
                                      : $this->_clientOptions;
-            $servers = preg_split('/\s*,\s*/', trim($options['server']), NULL, PREG_SPLIT_NO_EMPTY);
-            $sentinel = NULL;
-            $exception = NULL;
+            $servers = preg_split('/\s*,\s*/', trim($options['server']), null, PREG_SPLIT_NO_EMPTY);
+            $sentinel = null;
+            $exception = null;
             for ($i = 0; $i <= $sentinelClientOptions->connectRetries; $i++) // Try each sentinel in round-robin fashion
             foreach ($servers as $server) {
                 try {
-                    $sentinelClient = new Credis_Client($server, NULL, $sentinelClientOptions->timeout, $sentinelClientOptions->persistent);
+                    $sentinelClient = new Credis_Client($server, null, $sentinelClientOptions->timeout, $sentinelClientOptions->persistent);
                     $sentinelClient->forceStandalone();
                     $sentinelClient->setMaxConnectRetries(0);
                     if ($sentinelClientOptions->readTimeout) {
@@ -226,7 +226,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     }
                     if ($slave instanceof Credis_Client && $slave != $this->_redis) {
                         try {
-                            $this->_applyClientOptions($slave, TRUE);
+                            $this->_applyClientOptions($slave, true);
                             $this->_slave = $slave;
                         } catch (Exception $e) {
                             // If there is a problem with first slave then skip 'load_from_slaves' option
@@ -271,22 +271,22 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     $clientOptions = $this->_clientOptions;
 
                     // If multiple addresses are given, split and choose a random one
-                    if (strpos($server, ',') !== FALSE) {
+                    if (strpos($server, ',') !== false) {
                         $slaves = preg_split('/\s*,\s*/', $server, -1, PREG_SPLIT_NO_EMPTY);
                         $slaveKey = array_rand($slaves, 1);
                         $server = $slaves[$slaveKey];
-                        $port = NULL;
+                        $port = null;
                         $totalServers = count($slaves) + 1;
                     } else {
                         $totalServers = 2;
                     }
                 }
                 // Skip setting up slave if master is not write only and it is randomly chosen to be the read server
-                $masterWriteOnly = isset($options['master_write_only']) ? (int) $options['master_write_only'] : FALSE;
+                $masterWriteOnly = isset($options['master_write_only']) ? (int) $options['master_write_only'] : false;
                 if (is_string($server) && $server && ! (!$masterWriteOnly && rand(1,$totalServers) === 1)) {
                     try {
                         $slave = new Credis_Client($server, $port, $clientOptions->timeout, $clientOptions->persistent);
-                        $this->_applyClientOptions($slave, TRUE, $clientOptions);
+                        $this->_applyClientOptions($slave, true, $clientOptions);
                         $this->_slave = $slave;
                     } catch (Exception $e) {
                         // Slave will not be used
@@ -390,7 +390,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      *
      * @param Credis_Client $client
      */
-    protected function _applyClientOptions(Credis_Client $client, $forceSelect = FALSE, $clientOptions = null)
+    protected function _applyClientOptions(Credis_Client $client, $forceSelect = false, $clientOptions = null)
     {
         if ($clientOptions === null) {
             $clientOptions = $this->_clientOptions;
@@ -448,7 +448,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 isset($slave['timeout']) ? $slave['timeout'] : 2.5,
                 isset($slave['persistent']) ? $slave['persistent'] : ''
             );
-            $this->_applyClientOptions($this->_redis, TRUE);
+            $this->_applyClientOptions($this->_redis, true);
         }
     }
 
@@ -471,8 +471,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         } else {
             $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
         }
-        if ($data === NULL) {
-            return FALSE;
+        if ($data === null) {
+            return false;
         }
 
         $decoded = $this->_decodeData($data);
@@ -501,7 +501,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     {
         // Don't use slave for this since `test` is usually used for locking
         $mtime = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_MTIME);
-        return ($mtime ? $mtime : FALSE);
+        return ($mtime ? $mtime : false);
     }
 
     /**
@@ -592,7 +592,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             // Process removed tags if cache entry already existed
             if ($res) {
                 $oldTags = explode(',', $this->_decodeData($res));
-                if ($remTags = ($oldTags ? array_diff($oldTags, $tags) : FALSE))
+                if ($remTags = ($oldTags ? array_diff($oldTags, $tags) : false))
                 {
                     // Update the id list for each tag
                     foreach($remTags as $tag)
@@ -602,7 +602,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 }
             }
 
-            return TRUE;
+            return true;
         }
 
         // Get list of tags previously assigned
@@ -641,7 +641,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         // Process removed tags
-        if ($remTags = ($oldTags ? array_diff($oldTags, $tags) : FALSE))
+        if ($remTags = ($oldTags ? array_diff($oldTags, $tags) : false))
         {
             // Update the id list for each tag
             foreach($remTags as $tag)
@@ -657,7 +657,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         $this->_redis->exec();
 
-        return TRUE;
+        return true;
     }
 
     /**
@@ -938,10 +938,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             }
             if ($mode == Zend_Cache::CLEANING_MODE_OLD) {
                 $this->_collectGarbage();
-                return TRUE;
+                return true;
             }
             if ( ! count($tags)) {
-                return TRUE;
+                return true;
             }
             switch ($mode)
             {
@@ -966,7 +966,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         } catch (CredisException $e) {
             Zend_Cache::throwException('Error cleaning cache by mode '.$mode.': '.$e->getMessage(), $e);
         }
-        return TRUE;
+        return true;
     }
 
     /**
@@ -976,7 +976,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function isAutomaticCleaningAvailable()
     {
-        return TRUE;
+        return true;
     }
 
     /**
@@ -1159,10 +1159,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_redis->hMGet(self::PREFIX_KEY.$id, array(self::FIELD_TAGS, self::FIELD_MTIME, self::FIELD_INF))
         );
         if( ! $mtime) {
-          return FALSE;
+          return false;
         }
         $tags = explode(',', $this->_decodeData($tags));
-        $expire = $inf === '1' ? FALSE : time() + $this->_redis->ttl(self::PREFIX_KEY.$id);
+        $expire = $inf === '1' ? false : time() + $this->_redis->ttl(self::PREFIX_KEY.$id);
 
         return array(
             'expire' => $expire,
