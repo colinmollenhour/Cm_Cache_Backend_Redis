@@ -616,14 +616,14 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
           self::FIELD_DATA => $this->_encodeData($data, $this->_compressData),
           self::FIELD_TAGS => $this->_encodeData(implode(',',$tags), $this->_compressTags),
           self::FIELD_MTIME => time(),
-          self::FIELD_INF => $lifetime ? 0 : 1,
+          self::FIELD_INF => is_null($lifetime) ? 1 : 0,
         ));
         if( ! $result) {
             throw new CredisException("Could not set cache key $id");
         }
 
         // Set expiration if specified
-        if ($lifetime) {
+        if ($lifetime !== false) {
           $this->_redis->expire(self::PREFIX_KEY.$id, min($lifetime, self::MAX_LIFETIME));
         }
 
