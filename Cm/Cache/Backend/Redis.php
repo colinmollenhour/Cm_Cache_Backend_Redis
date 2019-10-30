@@ -623,7 +623,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         // Set expiration if specified
-        if ($lifetime !== false) {
+        if ($lifetime !== false && !is_null($lifetime)) {
           $this->_redis->expire(self::PREFIX_KEY.$id, min($lifetime, self::MAX_LIFETIME));
         }
 
