@@ -1123,6 +1123,16 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     }
 
     /**
+     * Return redis server info and stats
+     *
+     * @return array
+     */
+    public function getInfo()
+    {
+        return $this->_redis->info();
+    }
+
+    /**
      * Return the filling percentage of the backend storage
      *
      * @throws Zend_Cache_Exception
@@ -1140,6 +1150,24 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             ,0
             ,PHP_ROUND_HALF_UP
         );
+    }
+
+    /**
+     * Return the keyspace hit/miss percentage of the backend storage
+     *
+     * @throws Zend_Cache_Exception
+     * @return int integer between 0 and 100
+     */
+    public function getHitMissPercentage()
+    {
+        $info = $this->_redis->info();
+        $hits = $info['keyspace_hits'];
+        $misses = $info['keyspace_misses'];
+        $total = $misses+$hits;
+        $percentage = 0;
+        if ($total > 0)
+            $percentage = round($hits*100/$total, 0);
+        return $percentage;
     }
 
     /**
