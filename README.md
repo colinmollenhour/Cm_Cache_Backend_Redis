@@ -16,21 +16,30 @@ Works with any Zend Framework project including all versions of Magento!
  - Supports a configurable "auto expiry lifetime" which, if set, will be used as the TTL when the key otherwise wouldn't expire. In combination with "auto expiry refresh on load" offers a more sane cache management strategy for Magento's `Enterprise_PageCache` module.
  - __Unit tested!__
 
-## INSTALLATION (Magento)
+## REQUIREMENTS
 
- 1. Install [redis](http://redis.io/download) (2.4+ required)
- 2. Install [phpredis](https://github.com/nicolasff/phpredis) (optional)
+As this backend uses [Credis](https://github.com/colinmollenhour/credis) there are no additional requirements, but for improved performance you can install [phpredis](https://github.com/nicolasff/phpredis) which is a compiled extension.
 
    * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19, 2011.
    * phpredis is optional, but it is much faster than standalone mode
    * phpredis does not support setting read timeouts at the moment (see pull request #260). If you receive read errors (“read error on connection”), this
      might be the reason.
 
- 3. Install this module using [modman](https://github.com/colinmollenhour/modman):
+## INSTALLATION (Composer)
+
+```
+$ composer require colinmollenhour/cache-backend-redis
+```
+
+## INSTALLATION (Magento)
+
+You may use the Composer installation (above) or you can install via [modman](https://github.com/colinmollenhour/modman):
 
     * `modman clone https://github.com/colinmollenhour/Cm_Cache_Backend_Redis`
 
- 4. Edit app/etc/local.xml to configure:
+### Magento Configuration:
+
+Edit app/etc/local.xml to configure:
 
         <!-- This is a child node of config/global -->
         <cache>
