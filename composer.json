@@ -10,7 +10,7 @@
         }
     ],
     "require":{
-        "magento-hackathon/magento-composer-installer":"*"
+        "colinmollenhour/credis": "*"
     },
     "autoload": {
         "classmap": [
