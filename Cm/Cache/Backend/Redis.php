@@ -543,7 +543,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         else
             $tags = array_flip(array_flip($tags));
 
-        $lifetime = (int)$this->_getAutoExpiringLifetime($this->getLifetime($specificLifetime), $id);
+        $lifetime = $this->_getAutoExpiringLifetime($this->getLifetime($specificLifetime), $id);
+        $lifetime = $lifetime === null ? $lifetime : (int) $lifetime;
 
         if ($this->_useLua) {
             $sArgs = array(
