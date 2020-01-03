@@ -174,10 +174,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     if ($sentinelClientOptions->readTimeout) {
                         $sentinelClient->setReadTimeout($sentinelClientOptions->readTimeout);
                     }
-                    // Sentinel currently doesn't support AUTH
-                    //if ($password) {
-                    //    $sentinelClient->auth($password) or Zend_Cache::throwException('Unable to authenticate with the redis sentinel.');
-                    //}
+                    if ($sentinelClientOptions->password) {
+                        $sentinelClient->auth($sentinelClientOptions->password) or Zend_Cache::throwException('Unable to authenticate with the redis sentinel.');
+                    }
                     $sentinel = new Credis_Sentinel($sentinelClient);
                     $sentinel
                         ->setClientTimeout($this->_clientOptions->timeout)
