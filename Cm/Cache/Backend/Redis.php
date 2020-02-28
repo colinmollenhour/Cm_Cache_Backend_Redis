@@ -470,7 +470,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         } else {
             $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
         }
-        if ($data === NULL) {
+        if ($data === NULL || is_object($data)) {
             return FALSE;
         }
 
