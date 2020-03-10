@@ -80,14 +80,24 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /** @var string */
     protected $_compressionLib;
 
+    /** @var string */
+    protected $_compressPrefix;
+
     /**
      * On large data sets SUNION slows down considerably when used with too many arguments
      * so this is used to chunk the SUNION into a few commands where the number of set ids
      * exceeds this setting.
-     * 
+     *
      * @var int
      */
     protected $_sunionChunkSize = 500;
+
+    /**
+     * Maximum number of ids to be removed at a time
+     *
+     * @var int
+     */
+    protected $_removeChunkSize = 10000;
 
     /** @var bool */
     protected $_useLua = false;
@@ -146,7 +156,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     /**
      * Construct Zend_Cache Redis backend
      * @param array $options
-     * @return \Cm_Cache_Backend_Redis
+     * @throws Zend_Cache_Exception
      */
     public function __construct($options = array())
     {
@@ -159,7 +169,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         // If 'sentinel_master' is specified then server is actually sentinel and master address should be fetched from server.
         $sentinelMaster =  empty($options['sentinel_master']) ? NULL : $options['sentinel_master'];
         if ($sentinelMaster) {
-            $sentinelClientOptions = isset($options['sentinel']) && is_array($options['sentinel']) 
+            $sentinelClientOptions = isset($options['sentinel']) && is_array($options['sentinel'])
                                      ? $this->getClientOptions($options['sentinel'] + $options)
                                      : $this->_clientOptions;
             $servers = preg_split('/\s*,\s*/', trim($options['server']), NULL, PREG_SPLIT_NO_EMPTY);
@@ -357,6 +367,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         if ( isset($options['sunion_chunk_size']) && $options['sunion_chunk_size'] > 0) {
             $this->_sunionChunkSize = (int) $options['sunion_chunk_size'];
+        }
+
+        if ( isset($options['remove_chunk_size']) && $options['remove_chunk_size'] > 0) {
+            $this->_removeChunkSize = (int) $options['remove_chunk_size'];
         }
 
         if (isset($options['use_lua'])) {
@@ -699,17 +713,20 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $ids = $this->getIdsNotMatchingTags($tags);
         if($ids)
         {
-            $this->_redis->pipeline()->multi();
+            $ids = array_chunk($ids, $this->_removeChunkSize);
+            foreach ($ids as $idsChunk) {
+                $this->_redis->pipeline()->multi();
 
-            // Remove data
-            $this->_redis->del( $this->_preprocessIds($ids));
+                // Remove data
+                $this->_redis->del($this->_preprocessIds($idsChunk));
 
-            // Remove ids from list of all ids
-            if($this->_notMatchingTags) {
-                $this->_redis->sRem( self::SET_IDS, $ids);
+                // Remove ids from list of all ids
+                if ($this->_notMatchingTags) {
+                    $this->_redis->sRem(self::SET_IDS, $idsChunk);
+                }
+
+                $this->_redis->exec();
             }
-
-            $this->_redis->exec();
         }
     }
 
@@ -721,17 +738,20 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $ids = $this->getIdsMatchingTags($tags);
         if($ids)
         {
-            $this->_redis->pipeline()->multi();
+            $ids = array_chunk($ids, $this->_removeChunkSize);
+            foreach ($ids as $idsChunk) {
+                $this->_redis->pipeline()->multi();
 
-            // Remove data
-            $this->_redis->del( $this->_preprocessIds($ids));
+                // Remove data
+                $this->_redis->del($this->_preprocessIds($idsChunk));
 
-            // Remove ids from list of all ids
-            if($this->_notMatchingTags) {
-                $this->_redis->sRem( self::SET_IDS, $ids);
+                // Remove ids from list of all ids
+                if($this->_notMatchingTags) {
+                    $this->_redis->sRem( self::SET_IDS, $idsChunk);
+                }
+
+                $this->_redis->exec();
             }
-
-            $this->_redis->exec();
         }
     }
 
@@ -771,12 +791,21 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         if($ids)
         {
-            // Remove data
-            $this->_redis->del( $this->_preprocessIds($ids));
+            $ids = array_chunk($ids, $this->_removeChunkSize);
+            foreach ($ids as $index => $idsChunk) {
+                // Remove data
+                $this->_redis->del($this->_preprocessIds($idsChunk));
 
-            // Remove ids from list of all ids
-            if($this->_notMatchingTags) {
-                $this->_redis->sRem( self::SET_IDS, $ids);
+                // Remove ids from list of all ids
+                if ($this->_notMatchingTags) {
+                    $this->_redis->sRem(self::SET_IDS, $idsChunk);
+                }
+
+                // Commit each chunk in a separate transaction
+                if (count($ids) > 1) {
+                    $this->_redis->pipeline()->exec();
+                    $this->_redis->pipeline()->multi();
+                }
             }
         }
 
