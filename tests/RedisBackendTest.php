@@ -41,7 +41,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
 
     const LUA_MAX_C_STACK = 1000;
 
-    protected $forceStandalone = FALSE;
+    protected $forceStandalone = false;
 
     protected $autoExpireLifetime = 0;
 
@@ -61,11 +61,11 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             'server' => '127.0.0.1',
             'port'   => '6379',
             'database' => '1',
-            'notMatchingTags' => TRUE,
+            'notMatchingTags' => true,
             'force_standalone' => $this->forceStandalone,
             'compress_threshold' => 100,
             'compression_lib' => 'gzip',
-            'use_lua' => TRUE,
+            'use_lua' => true,
             'lua_max_c_stack' => self::LUA_MAX_C_STACK,
             'auto_expire_lifetime' => $this->autoExpireLifetime,
             'auto_expire_refresh_on_load' => $this->autoExpireRefreshOnLoad,
