@@ -56,7 +56,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const DEFAULT_CONNECT_RETRIES = 1;
 
     const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
-    const LUA_CLEAN_SH1 = '42ab2fe548aee5ff540123687a2c39a38b54e4a2';
+    const LUA_CLEAN_SH1 = 'a6d92d0d20e5c8fa3d1a4cf7417191b66676ce43';
     const LUA_GC_SH1 = 'c00416b970f1aa6363b44965d4cf60ee99a6f065';
 
     /** @var Credis_Client */
@@ -763,21 +763,24 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ($this->_useLua) {
             $tags = array_chunk($tags, $this->_sunionChunkSize);
             foreach ($tags as $chunk) {
-                $chunk = $this->_preprocessTagIds($chunk);
-                $args = array(self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0), (int) $this->_luaMaxCStack);
+                $args = array(self::PREFIX_TAG_IDS, self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0), (int) $this->_luaMaxCStack);
                 if ( ! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $chunk, $args)) {
                     $script =
-                        "for i = 1, #KEYS, ARGV[5] do ".
-                            "local keysToDel = redis.call('SUNION', unpack(KEYS, i, math.min(#KEYS, i + ARGV[5] - 1))) ".
-                            "for _, keyname in ipairs(keysToDel) do ".
-                                "redis.call('DEL', ARGV[1]..keyname) ".
-                                "if (ARGV[4] == '1') then ".
-                                    "redis.call('SREM', ARGV[3], keyname) ".
-                                "end ".
-                            "end ".
-                            "redis.call('DEL', unpack(KEYS, i, math.min(#KEYS, i + ARGV[5] - 1))) ".
-                            "redis.call('SREM', ARGV[2], unpack(KEYS, i, math.min(#KEYS, i + ARGV[5] - 1))) ".
-                        "end ".
+                        "for i = 1, #KEYS, ARGV[6] do " .
+                            "local prefixedTags = {} " .
+                            "for x, tag in ipairs(KEYS) do " .
+                                "prefixedTags[x] = ARGV[1]..tag " .
+                            "end " .
+                            "local keysToDel = redis.call('SUNION', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+                            "for _, keyname in ipairs(keysToDel) do " .
+                                "redis.call('DEL', ARGV[2]..keyname) " .
+                                "if (ARGV[5] == '1') then " .
+                                    "redis.call('SREM', ARGV[4], keyname) " .
+                                "end " .
+                            "end " .
+                            "redis.call('DEL', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+                            "redis.call('SREM', ARGV[3], unpack(KEYS, i, math.min(#KEYS, i + ARGV[6] - 1))) " .
+                        "end " .
                         "return true";
                     $this->_redis->eval($script, $chunk, $args);
                 }
