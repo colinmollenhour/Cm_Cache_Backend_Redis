@@ -702,7 +702,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         $result = $this->_redis->exec();
 
-        return (bool) $result[0];
+        return isset($result[0]) ? (bool)$result[0] : false;
     }
 
     /**
