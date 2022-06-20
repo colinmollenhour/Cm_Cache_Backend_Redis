@@ -172,7 +172,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $sentinelClientOptions = isset($options['sentinel']) && is_array($options['sentinel'])
                                      ? $this->getClientOptions($options['sentinel'] + $options)
                                      : $this->_clientOptions;
-            $servers = preg_split('/\s*,\s*/', trim($options['server']), NULL, PREG_SPLIT_NO_EMPTY);
+            $servers = preg_split('/\s*,\s*/', trim($options['server']), -1, PREG_SPLIT_NO_EMPTY);
             $sentinel = NULL;
             $exception = NULL;
             for ($i = 0; $i <= $sentinelClientOptions->connectRetries; $i++) // Try each sentinel in round-robin fashion
@@ -210,7 +210,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
                     $this->_redis = $redisMaster;
                     break 2;
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     unset($sentinelClient);
                     $exception = $e;
                 }
