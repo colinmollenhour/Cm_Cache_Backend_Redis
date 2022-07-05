@@ -14,7 +14,8 @@ modification, are permitted provided that the following conditions are met:
     * The name of Colin Mollenhour may not be used to endorse or promote products
       derived from this software without specific prior written permission.
       
-    * The class name must remain as Cm_Cache_Backend_Redis.
+    * If any files are modified, you must cause the modified files to carry prominent
+      notices stating that you changed the files and the date of any change.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
