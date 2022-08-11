@@ -147,6 +147,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $clientOptions->connectRetries = isset($options['connect_retries']) ? (int) $options['connect_retries'] : self::DEFAULT_CONNECT_RETRIES;
         $clientOptions->readTimeout = isset($options['read_timeout']) ? (float) $options['read_timeout'] : NULL;
         $clientOptions->password = isset($options['password']) ? $options['password'] : NULL;
+        $clientOptions->username = isset($options['username']) ? $options['username'] : NULL;
         $clientOptions->database = isset($options['database']) ? (int) $options['database'] : 0;
         $clientOptions->persistent = isset($options['persistent']) ? $options['persistent'] : '';
         $clientOptions->timeout = isset($options['timeout']) ? $options['timeout'] : self::DEFAULT_CONNECT_TIMEOUT;
@@ -420,7 +421,11 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         if ($clientOptions->password) {
-            $client->auth($clientOptions->password) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
+            if ($clientOptions->username) {
+                $client->auth($clientOptions->password, $clientOptions->username) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
+            } else {
+                $client->auth($clientOptions->password) or Zend_Cache::throwException('Unable to authenticate with the redis server.');
+            }
         }
 
         // Always select database when persistent is used in case connection is re-used by other clients
