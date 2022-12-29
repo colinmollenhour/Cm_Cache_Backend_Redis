@@ -499,9 +499,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             try {
                 $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
             } catch (CredisException $e) {
-                // Respond as if key not found when dataset is loading
+                // Retry once after 1 second when dataset is loading
                 if ($e->getMessage() === 'LOADING Redis is loading the dataset in memory') {
-                    $data = FALSE;
+                    sleep(1);
+                    $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
                 } else {
                     throw $e;
                 }
