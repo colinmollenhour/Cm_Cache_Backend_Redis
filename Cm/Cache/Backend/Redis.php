@@ -482,6 +482,11 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ($this->_slave) {
             try {
                 $data = $this->_slave->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+
+                // Prevent compounded effect of cache flood on asynchronously replicating master/slave setup
+                if ($this->_retryReadsOnMaster && $data === false) {
+                    $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+                }
             } catch (CredisException $e) {
                 // Always retry reads on master when dataset is loading on slave
                 if ($e->getMessage() === 'LOADING Redis is loading the dataset in memory') {
@@ -489,11 +494,6 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 } else {
                     throw $e;
                 }
-            }
-
-            // Prevent compounded effect of cache flood on asynchronously replicating master/slave setup
-            if ($this->_retryReadsOnMaster && $data === false) {
-                $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
             }
         } else {
             try {
