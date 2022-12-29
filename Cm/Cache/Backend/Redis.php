@@ -480,16 +480,35 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     public function load($id, $doNotTestCacheValidity = false)
     {
         if ($this->_slave) {
-            $data = $this->_slave->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+            try {
+                $data = $this->_slave->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
 
-            // Prevent compounded effect of cache flood on asynchronously replicating master/slave setup
-            if ($this->_retryReadsOnMaster && $data === false) {
-                $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+                // Prevent compounded effect of cache flood on asynchronously replicating master/slave setup
+                if ($this->_retryReadsOnMaster && $data === false) {
+                    $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+                }
+            } catch (CredisException $e) {
+                // Always retry reads on master when dataset is loading on slave
+                if ($e->getMessage() === 'LOADING Redis is loading the dataset in memory') {
+                    $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+                } else {
+                    throw $e;
+                }
             }
         } else {
-            $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+            try {
+                $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+            } catch (CredisException $e) {
+                // Retry once after 1 second when dataset is loading
+                if ($e->getMessage() === 'LOADING Redis is loading the dataset in memory') {
+                    sleep(1);
+                    $data = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
+                } else {
+                    throw $e;
+                }
+            }
         }
-        if ($data === NULL || is_object($data)) {
+        if ($data === NULL || $data === FALSE || is_object($data)) {
             return FALSE;
         }
 
