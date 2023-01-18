@@ -29,13 +29,13 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-require_once 'RedisBackendTest.php';
+require_once 'vendor/autoload.php';
 
 /**
  * @copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class Zend_Cache_RedisStandaloneBackendTest extends Zend_Cache_RedisBackendTest {
+class RedisBackendStandaloneTest extends RedisBackendTest {
 
     protected $forceStandalone = TRUE;
 

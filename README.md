@@ -1,10 +1,8 @@
-# Zend_Cache backend using Redis with full support for tags
-
-This Zend_Cache backend allows you to use a Redis server as a central cache storage. Tags are fully supported
-without the use of TwoLevels cache so this backend is great for use on a single machine or in a cluster.
+This `Zend_Cache` backend allows you to use a Redis server as a central cache storage. Tags are fully supported
+without the use of `TwoLevels` cache so this backend is great for use on a single machine or in a cluster.
 Works with any Zend Framework project including all versions of Magento!
 
-## FEATURES
+# FEATURES
 
  - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
  - Falls back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
@@ -16,7 +14,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Supports a configurable "auto expiry lifetime" which, if set, will be used as the TTL when the key otherwise wouldn't expire. In combination with "auto expiry refresh on load" offers a more sane cache management strategy for Magento's `Enterprise_PageCache` module.
  - __Unit tested!__
 
-## REQUIREMENTS
+# REQUIREMENTS
 
 As this backend uses [Credis](https://github.com/colinmollenhour/credis) there are no additional requirements, but for improved performance you can install [phpredis](https://github.com/nicolasff/phpredis) which is a compiled extension.
 
@@ -25,21 +23,26 @@ As this backend uses [Credis](https://github.com/colinmollenhour/credis) there a
    * phpredis does not support setting read timeouts at the moment (see pull request #260). If you receive read errors (“read error on connection”), this
      might be the reason.
 
-## INSTALLATION (Composer)
+# INSTALLATION
+
+Add the package as a dependency to your project with Composer.
 
 ```
 $ composer require colinmollenhour/cache-backend-redis
 ```
 
-## INSTALLATION (Magento)
+### modman
 
-You may use the Composer installation (above) or you can install via [modman](https://github.com/colinmollenhour/modman):
+It is not the recommended method, but you may install via [modman](https://github.com/colinmollenhour/modman):
 
     * `modman clone https://github.com/colinmollenhour/Cm_Cache_Backend_Redis`
 
-### Magento Configuration:
+# CONFIGURATION
 
-Edit app/etc/local.xml to configure:
+These examples assume you are using Magento, but the configuration can just be passed to the constructor as a PHP
+array with the same key names as seen in the examples.
+
+Edit `app/etc/local.xml` to configure:
 
         <!-- This is a child node of config/global -->
         <cache>
@@ -82,8 +85,6 @@ Edit app/etc/local.xml to configure:
         </full_page_cache>
 
 ## High Availability and Load Balancing Support
-
-There are two supported methods of achieving High Availability and Load Balancing with Cm_Cache_Backend_Redis.
 
 ### Redis Sentinel
 
@@ -146,7 +147,7 @@ with multiple addresses separated by a comma.
           </backend_options>
         </cache>
 
-## ElastiCache
+### ElastiCache
 
 The following example configuration lets you use ElastiCache Redis (cluster mode disabled) where the writes are sent to
 the Primary node and reads are sent to the replicas. This lets you distribute the read traffic between the different nodes.  
@@ -177,7 +178,7 @@ Previously the ElastiCache config instructions suggested setting up a `<cluster>
 and is no longer supported. The config is still parsed and loaded for backwards-compatibility but chooses a random slave
 to read from rather than using md5 hash of the keys. 
 
-## RELATED / TUNING
+# TUNING
 
  - The recommended "maxmemory-policy" is "volatile-lru". All tag metadata is non-volatile so it is
    recommended to use key expirations unless non-volatile keys are absolutely necessary so that tag
@@ -197,6 +198,8 @@ to read from rather than using md5 hash of the keys.
  - Monitor your redis cache statistics with my modified [munin plugin](https://gist.github.com/1177716).
  - Enable persistent connections. Make sure that if you have multiple configurations connecting the persistent
    string is unique for each configuration so that "select" commands don't cause conflicts.
+ - Increase your server's `lua-time-limit` if you are getting "BUSY" errors. This setting can also cause Redis Sentinel
+   to invoke failovers when you would probably prefer to let the Lua script finish and have clients wait a little longer. 
  - Use the `stats.php` script to inspect your cache to find oversized or wasteful cache tags.
 
 ### Example Garbage Collection Script (Magento)
@@ -210,20 +213,20 @@ to read from rather than using md5 hash of the keys.
     // uncomment this for Magento Enterprise Edition
     // Enterprise_PageCache_Model_Cache::getCacheInstance()->getFrontend()->getBackend()->clean('old');
 
-## Release Notes
 
- - March 2017: Added support for Redis Sentinel and loading from slaves. Thanks @Xon for the help!
- - Sometime in 2013: Ceased updating these release notes...
- - November 19, 2012: Added read_timeout option. (Feature only supported in standalone mode, will be supported by phpredis when pull request #260 is merged)
- - October 29, 2012: Added support for persistent connections. (Thanks samm-git!)
- - October 12, 2012: Improved memory usage and efficiency of garbage collection and updated recommendation.
- - September 17, 2012: Added connect_retries option (default: 1) to prevent errors from random connection failures.
- - July 10, 2012: Added password authentication support.
- - Mar 1, 2012: Using latest Credis_Client which adds auto-reconnect for standalone mode.
- - Feb 15, 2012: Changed from using separate keys for data, tags and mtime to a single hash per key.
- - Nov 10, 2011: Changed from using phpredis and redisent to Credis (which wraps phpredis). Implemented pipelining.
+# DEVELOPMENT
+
+Please feel free to send Pull Requests to give back your improvements to the community!
+
+You can run the unit tests locally with just Docker installed like so:
 
 ```
-@copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
+$ docker run --rm -it -u $(id -u):$(id -g) -v ${COMPOSER_HOME:-$HOME/.composer}:/tmp -v $(pwd):/app composer install
+$ docker run --rm -d -p 6379 redis
+$ docker run --rm -v $(pwd):/app --workdir /app -e REDIS_SERVER=host.docker.internal php:8.2-cli ./vendor/bin/phpunit tests
+```
+
+```
+@copyright  Copyright (c) 2022 Colin Mollenhour (http://colin.mollenhour.com)
 This project is licensed under the "New BSD" license (see source).
 ```
