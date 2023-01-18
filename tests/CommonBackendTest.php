@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
-abstract class CommonBackendTest extends TestCase {
-
+abstract class CommonBackendTest extends TestCase
+{
     protected Cm_Cache_Backend_Redis $_instance;
     protected $_className;
 
@@ -197,7 +197,4 @@ abstract class CommonBackendTest extends TestCase {
         $this->assertTrue($this->_instance->test('bar2') > 999999);
         $this->assertFalse($this->_instance->test('bar3'));
     }
-
 }
-
-

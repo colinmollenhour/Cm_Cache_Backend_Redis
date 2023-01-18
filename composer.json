@@ -13,6 +13,7 @@
         "colinmollenhour/credis": "^1.14"
     },
     "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.4",
         "phpunit/phpunit": "^9",
         "zf1s/zend-cache": "~1.15"
     },
@@ -22,6 +23,7 @@
         ]
     },
     "scripts": {
-        "test": "vendor/bin/phpunit tests"
+        "test": "vendor/bin/phpunit tests",
+        "php-cs-fixer": "php-cs-fixer --rules=@PSR2"
     }
 }

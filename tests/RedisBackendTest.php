@@ -35,11 +35,11 @@ require_once 'CommonExtendedBackendTest.php';
  * @copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class RedisBackendTest extends CommonExtendedBackendTest {
-
+class RedisBackendTest extends CommonExtendedBackendTest
+{
     const LUA_MAX_C_STACK = 1000;
 
-    protected $forceStandalone = FALSE;
+    protected $forceStandalone = false;
 
     protected $autoExpireLifetime = 0;
 
@@ -56,11 +56,11 @@ class RedisBackendTest extends CommonExtendedBackendTest {
             'server' => getenv('REDIS_SERVER') ?: 'localhost',
             'port'   => getenv('REDIS_PORT') ?: '6379',
             'database' => '1',
-            'notMatchingTags' => TRUE,
+            'notMatchingTags' => true,
             'force_standalone' => $this->forceStandalone,
             'compress_threshold' => 100,
             'compression_lib' => 'gzip',
-            'use_lua' => TRUE,
+            'use_lua' => true,
             'lua_max_c_stack' => self::LUA_MAX_C_STACK,
             'auto_expire_lifetime' => $this->autoExpireLifetime,
             'auto_expire_refresh_on_load' => $this->autoExpireRefreshOnLoad,
@@ -91,8 +91,8 @@ class RedisBackendTest extends CommonExtendedBackendTest {
     public function testExpiredCleanup(): void
     {
         $this->assertTrue($this->_instance->clean());
-        $this->assertTrue($this->_instance->save('BLAH','foo', array('TAG1', 'TAG2'), 1));
-        $this->assertTrue($this->_instance->save('BLAH','bar', array('TAG1', 'TAG3'), 1));
+        $this->assertTrue($this->_instance->save('BLAH', 'foo', array('TAG1', 'TAG2'), 1));
+        $this->assertTrue($this->_instance->save('BLAH', 'bar', array('TAG1', 'TAG3'), 1));
         $ids = $this->_instance->getIdsMatchingAnyTags(array('TAG1','TAG2','TAG3'));
         sort($ids);
         $this->assertEquals(array('bar','foo'), $ids);

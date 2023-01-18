@@ -35,8 +35,7 @@ require_once 'vendor/autoload.php';
  * @copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class RedisBackendStandaloneTest extends RedisBackendTest {
-
-    protected $forceStandalone = TRUE;
-
+class RedisBackendStandaloneTest extends RedisBackendTest
+{
+    protected $forceStandalone = true;
 }

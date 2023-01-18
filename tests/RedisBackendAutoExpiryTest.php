@@ -36,8 +36,8 @@ require_once 'RedisBackendTest.php';
  * @copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class RedisBackendAutoExpiryTest extends RedisBackendTest {
-
+class RedisBackendAutoExpiryTest extends RedisBackendTest
+{
     protected $autoExpireLifetime = 3600;
 
     protected $autoExpireRefreshOnLoad = 1;

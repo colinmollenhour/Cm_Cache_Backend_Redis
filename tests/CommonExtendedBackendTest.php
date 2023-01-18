@@ -2,8 +2,8 @@
 require_once 'vendor/autoload.php';
 require_once 'CommonBackendTest.php';
 
-abstract class CommonExtendedBackendTest extends CommonBackendTest {
-
+abstract class CommonExtendedBackendTest extends CommonBackendTest
+{
     private $_capabilities;
 
     public function __construct($name = null, array $data = array(), $dataName = '')
@@ -178,7 +178,4 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest {
         $this->assertTrue(isset($res['infinite_lifetime']));
         $this->assertTrue(isset($res['get_list']));
     }
-
 }
-
-
