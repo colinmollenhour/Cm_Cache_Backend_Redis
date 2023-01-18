@@ -10,7 +10,7 @@
         }
     ],
     "require":{
-        "colinmollenhour/credis": "*"
+        "colinmollenhour/credis": "^1.14"
     },
     "require-dev": {
         "phpunit/phpunit": "^9",
