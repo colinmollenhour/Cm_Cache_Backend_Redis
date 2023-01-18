@@ -7,14 +7,9 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest
 {
     private $_capabilities;
 
-    public function __construct($name = null, array $data = array(), $dataName = '')
+    public function setUp($noTag = false): void
     {
-        parent::__construct($name);
-    }
-
-    public function setUp($notag = false): void
-    {
-        parent::setUp($notag);
+        parent::setUp($noTag);
         $this->_capabilities = $this->_instance->getCapabilities();
     }
 
@@ -28,7 +23,7 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest
 
     public function testGetFillingPercentageOnEmptyBackend(): void
     {
-        $this->_instance->clean(Zend_Cache::CLEANING_MODE_ALL);
+        $this->_instance->clean();
         $res = $this->_instance->getFillingPercentage();
         $this->assertTrue(is_integer($res));
         $this->assertTrue($res >= 0);
@@ -55,7 +50,7 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest
             return;
         }
         $res = $this->_instance->getTags();
-        $this->assertEquals(4, count($res));
+        $this->assertCount(4, $res);
         $this->assertTrue(in_array('tag1', $res));
         $this->assertTrue(in_array('tag2', $res));
         $this->assertTrue(in_array('tag3', $res));
@@ -93,7 +88,7 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest
             return;
         }
         $res = $this->_instance->getIdsMatchingTags(array('tag9999'));
-        $this->assertTrue(count($res) == 0);
+        $this->assertEmpty($res);
     }
 
 
@@ -115,7 +110,7 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest
             return;
         }
         $res = $this->_instance->getIdsNotMatchingTags(array('tag3'));
-        $this->assertEquals(0, count($res));
+        $this->assertCount(0, $res);
     }
 
     public function testGetIdsNotMatchingTags2(): void
@@ -141,14 +136,14 @@ abstract class CommonExtendedBackendTest extends CommonBackendTest
         $this->assertTrue(in_array('bar3', $res));
     }
 
-    public function testGetMetadatas($notag = false)
+    public function testGetMetadatas($noTag = false)
     {
         $res = $this->_instance->getMetadatas('bar');
         $this->assertTrue(isset($res['tags']));
         $this->assertTrue(isset($res['mtime']));
         $this->assertTrue(isset($res['expire']));
-        if ($notag) {
-            $this->assertTrue(count($res['tags']) == 0);
+        if ($noTag) {
+            $this->assertEmpty($res['tags']);
         } else {
             $this->assertTrue(count($res['tags']) == 2);
             $this->assertTrue(in_array('tag3', $res['tags']));

@@ -15,10 +15,10 @@ abstract class CommonBackendTest extends TestCase
         parent::__construct($name, $data, $dataName);
     }
 
-    public function setUp($notag = false): void
+    public function setUp($noTag = false): void
     {
         $this->_instance->setDirectives(array('logging' => false));
-        if ($notag) {
+        if ($noTag) {
             $this->_instance->save('bar : data to cache', 'bar');
             $this->_instance->save('bar2 : data to cache', 'bar2');
             $this->_instance->save('bar3 : data to cache', 'bar3');
@@ -36,25 +36,14 @@ abstract class CommonBackendTest extends TestCase
 
     public function testConstructorBadOption(): void
     {
-        $this->expectNotToPerformAssertions();
-        try {
-            $class = $this->_className;
-            $test = new $class(array(1 => 'bar'));
-        } catch (Zend_Cache_Exception $e) {
-            return;
-        }
-        $this->fail('Zend_Cache_Exception was expected but not thrown');
+        $this->expectException('Zend_Cache_Exception');
+        new Cm_Cache_Backend_Redis(array(1 => 'bar'));
     }
 
     public function testSetDirectivesBadArgument(): void
     {
-        $this->expectNotToPerformAssertions();
-        try {
-            $this->_instance->setDirectives('foo');
-        } catch (Zend_Cache_Exception $e) {
-            return;
-        }
-        $this->fail('Zend_Cache_Exception was expected but not thrown');
+        $this->expectException('Zend_Cache_Exception');
+        $this->_instance->setDirectives('foo');
     }
 
     public function testSetDirectivesBadDirective(): void
@@ -67,13 +56,8 @@ abstract class CommonBackendTest extends TestCase
 
     public function testSetDirectivesBadDirective2(): void
     {
-        $this->expectNotToPerformAssertions();
-        try {
-            $this->_instance->setDirectives(array('foo' => true, 12 => 3600));
-        } catch (Zend_Cache_Exception $e) {
-            return;
-        }
-        $this->fail('Zend_Cache_Exception was expected but not thrown');
+        $this->expectException('Zend_Cache_Exception');
+        $this->_instance->setDirectives(array('foo' => true, 12 => 3600));
     }
 
     public function testSaveCorrectCall(): void

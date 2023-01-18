@@ -1,5 +1,7 @@
 <?php
 
+require __DIR__.'/vendor/autoload.php';
+
 $server = 'tcp://127.0.0.1:6379';
 $db = 0;
 $limit = 20;
@@ -7,20 +9,14 @@ array_shift($argv);
 while ($arg = array_shift($argv)) {
     switch($arg) {
         case '--db': $db = intval(array_shift($argv));
-        break;
+            break;
         case '--server': $server = array_shift($argv);
-        break;
+            break;
         case '--limit': $limit = array_shift($argv);
-        break;
+            break;
         default: die("Unrecognized argument '$arg'.\nUsage: path/to/stats.php [--server tcp://127.0.0.1:6378] [--db 0] [--limit 20]\n");
     }
 }
-
-require __DIR__.'/lib/Credis/Client.php';
-require './lib/Zend/Cache/Backend/Interface.php';
-require './lib/Zend/Cache/Backend/ExtendedInterface.php';
-require './lib/Zend/Cache/Backend.php';
-require __DIR__.'/Cm/Cache/Backend/Redis.php';
 
 $client = new Credis_Client($server);
 $client->select($db);
@@ -90,10 +86,10 @@ function printStats($data, $key, $limit)
 }
 
 // Top 20 by total size
-printStats($tagStats, 'total size', $limit, true);
+printStats($tagStats, 'total size', $limit);
 
 // Top 20 by average size
-printStats($tagStats, 'avg size', $limit, true);
+printStats($tagStats, 'avg size', $limit);
 
 // Top 20 by count
-printStats($tagStats, 'count', $limit, true);
+printStats($tagStats, 'count', $limit);

@@ -6,7 +6,7 @@ Works with any Zend Framework project including all versions of Magento!
 
  - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
  - Falls back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
- - Tagging is fully supported, implemented using the Redis "set" and "hash" datatypes for efficient tag management.
+ - Tagging is fully supported, implemented using the Redis "set" and "hash" data types for efficient tag management.
  - Key expiration is handled automatically by Redis.
  - Supports unix socket connection for even better performance on a single machine.
  - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
@@ -182,9 +182,9 @@ to read from rather than using md5 hash of the keys.
 
 # TUNING
 
- - The recommended "maxmemory-policy" is "volatile-lru". All tag metadata is non-volatile so it is
+ - The recommended "maxmemory-policy" is "volatile-lru". All tag metadata is non-volatile, so it is
    recommended to use key expirations unless non-volatile keys are absolutely necessary so that tag
-   data cannot get evicted. So, be sure that the "maxmemory" is high enough to accommodate all of
+   data cannot get evicted. So, be sure that the "maxmemory" is high enough to accommodate all
    the tag data and non-volatile data with enough room left for the volatile key data as well.
  - Automatic cleaning is optional and not recommended since it is slow and uses lots of memory.
  - Occasional (e.g. once a day) garbage collection is recommended if the entire cache is infrequently cleared and
@@ -201,8 +201,8 @@ to read from rather than using md5 hash of the keys.
  - Enable persistent connections. Make sure that if you have multiple configurations connecting the persistent
    string is unique for each configuration so that "select" commands don't cause conflicts.
  - Increase your server's `lua-time-limit` if you are getting "BUSY" errors. This setting can also cause Redis Sentinel
-   to invoke failovers when you would probably prefer to let the Lua script finish and have clients wait a little longer. 
- - Use the `stats.php` script to inspect your cache to find oversized or wasteful cache tags.
+   to invoke fail-overs when you would probably prefer to let the Lua script finish and have clients wait a little longer. 
+ - Use the `stats.php` script to inspect your cache to find over-sized or wasteful cache tags.
 
 ### Example Garbage Collection Script (Magento)
 
