@@ -197,4 +197,20 @@ class RedisBackendTest extends CommonExtendedBackendTest {
         $this->assertEquals(0, count($this->_instance->getIdsMatchingAnyTags($_tags)));
     }
 
+    public function testScriptsCaching(): void
+    {
+        $this->_instance->___scriptFlush();
+        $this->assertEquals([], $this->_instance->___checkScriptsExist());
+
+        $this->_instance->save('foo', 'bar', ['x','y']);
+        $this->assertEquals(['save'], $this->_instance->___checkScriptsExist());
+
+        $this->_instance->___scriptFlush();
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_OLD);
+        $this->assertEquals(['garbage'], $this->_instance->___checkScriptsExist());
+
+        $this->_instance->___scriptFlush();
+        $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, ['x']);
+        $this->assertEquals(['clean'], $this->_instance->___checkScriptsExist());
+    }
 }

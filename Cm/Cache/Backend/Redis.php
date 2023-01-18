@@ -1395,4 +1395,23 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $this->_redis->script('flush');
     }
 
+    /**
+     * @return array
+     */
+    public function ___checkScriptsExist()
+    {
+        $scripts = [];
+        $result = $this->_redis->script('exists', self::LUA_SAVE_SH1, self::LUA_CLEAN_SH1, self::LUA_GC_SH1);
+        if ($result[0] ?? false) {
+            $scripts[] = 'save';
+        }
+        if ($result[1] ?? false) {
+            $scripts[] = 'clean';
+        }
+        if ($result[2] ?? false) {
+            $scripts[] = 'garbage';
+        }
+        return $scripts;
+    }
+
 }
