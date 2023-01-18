@@ -56,8 +56,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     const DEFAULT_CONNECT_RETRIES = 1;
 
     const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
-    const LUA_CLEAN_SH1 = 'a6d92d0d20e5c8fa3d1a4cf7417191b66676ce43';
-    const LUA_GC_SH1 = 'c00416b970f1aa6363b44965d4cf60ee99a6f065';
+    const LUA_CLEAN_SH1 = '39383dcf36d2e71364a666b2a806bc8219cd332d';
+    const LUA_GC_SH1 = '6990147f5d1999b936dac3b6f7e5d2071908bcf3';
 
     /** @var Credis_Client */
     protected $_redis;
@@ -712,7 +712,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $this->_redis->pipeline()->multi();
 
         // Remove data
-        $this->_redis->del(self::PREFIX_KEY.$id);
+        $this->_redis->unlink(self::PREFIX_KEY.$id);
 
         // Remove id from list of all ids
         if($this->_notMatchingTags) {
@@ -742,7 +742,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 $this->_redis->pipeline()->multi();
 
                 // Remove data
-                $this->_redis->del($this->_preprocessIds($idsChunk));
+                $this->_redis->unlink($this->_preprocessIds($idsChunk));
 
                 // Remove ids from list of all ids
                 if ($this->_notMatchingTags) {
@@ -767,7 +767,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 $this->_redis->pipeline()->multi();
 
                 // Remove data
-                $this->_redis->del($this->_preprocessIds($idsChunk));
+                $this->_redis->unlink($this->_preprocessIds($idsChunk));
 
                 // Remove ids from list of all ids
                 if($this->_notMatchingTags) {
@@ -797,12 +797,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                             "end " .
                             "local keysToDel = redis.call('SUNION', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
                             "for _, keyname in ipairs(keysToDel) do " .
-                                "redis.call('DEL', ARGV[2]..keyname) " .
+                                "redis.call('UNLINK', ARGV[2]..keyname) " .
                                 "if (ARGV[5] == '1') then " .
                                     "redis.call('SREM', ARGV[4], keyname) " .
                                 "end " .
                             "end " .
-                            "redis.call('DEL', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+                            "redis.call('UNLINK', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
                             "redis.call('SREM', ARGV[3], unpack(KEYS, i, math.min(#KEYS, i + ARGV[6] - 1))) " .
                         "end " .
                         "return true";
@@ -821,7 +821,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $ids = array_chunk($ids, $this->_removeChunkSize);
             foreach ($ids as $index => $idsChunk) {
                 // Remove data
-                $this->_redis->del($this->_preprocessIds($idsChunk));
+                $this->_redis->unlink($this->_preprocessIds($idsChunk));
 
                 // Remove ids from list of all ids
                 if ($this->_notMatchingTags) {
@@ -837,7 +837,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         // Remove tag id lists
-        $this->_redis->del( $this->_preprocessTagIds($tags));
+        $this->_redis->unlink( $this->_preprocessTagIds($tags));
 
         // Remove tags from list of tags
         $this->_redis->sRem( self::SET_TAGS, $tags);
@@ -894,7 +894,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                                     "end ".
                                 "end ".
                                 "if (notExpiredCount == 0) then ".
-                                    "redis.call ('DEL', ARGV[4]..tagName) ".
+                                    "redis.call ('UNLINK', ARGV[4]..tagName) ".
                                     "redis.call ('SREM', ARGV[2], tagName) ".
                                 "end ".
                                 "expired = {} ".
@@ -948,7 +948,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
             // Remove empty tags or completely expired tags
             if ($numExpired == $numTagMembers) {
-                $this->_redis->del(self::PREFIX_TAG_IDS . $tag);
+                $this->_redis->unlink(self::PREFIX_TAG_IDS . $tag);
                 $this->_redis->sRem(self::SET_TAGS, $tag);
             }
             // Clean up expired ids from tag ids set
@@ -1384,7 +1384,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function ___expire($id)
     {
-        $this->_redis->del(self::PREFIX_KEY.$id);
+        $this->_redis->unlink(self::PREFIX_KEY.$id);
     }
 
     /**
