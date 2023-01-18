@@ -37,7 +37,7 @@ require_once 'CommonExtendedBackendTest.php';
  */
 class RedisBackendTest extends CommonExtendedBackendTest
 {
-    const LUA_MAX_C_STACK = 1000;
+    public const LUA_MAX_C_STACK = 1000;
 
     protected $forceStandalone = false;
 

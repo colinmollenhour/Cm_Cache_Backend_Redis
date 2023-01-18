@@ -38,25 +38,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
 {
-    const SET_IDS         = 'zc:ids';
-    const SET_TAGS        = 'zc:tags';
+    public const SET_IDS         = 'zc:ids';
+    public const SET_TAGS        = 'zc:tags';
 
-    const PREFIX_KEY      = 'zc:k:';
-    const PREFIX_TAG_IDS  = 'zc:ti:';
+    public const PREFIX_KEY      = 'zc:k:';
+    public const PREFIX_TAG_IDS  = 'zc:ti:';
 
-    const FIELD_DATA      = 'd';
-    const FIELD_MTIME     = 'm';
-    const FIELD_TAGS      = 't';
-    const FIELD_INF       = 'i';
+    public const FIELD_DATA      = 'd';
+    public const FIELD_MTIME     = 'm';
+    public const FIELD_TAGS      = 't';
+    public const FIELD_INF       = 'i';
 
-    const MAX_LIFETIME    = 2592000; /* Redis backend limit */
-    const COMPRESS_PREFIX = ":\x1f\x8b";
-    const DEFAULT_CONNECT_TIMEOUT = 2.5;
-    const DEFAULT_CONNECT_RETRIES = 1;
+    public const MAX_LIFETIME    = 2592000; /* Redis backend limit */
+    public const COMPRESS_PREFIX = ":\x1f\x8b";
+    public const DEFAULT_CONNECT_TIMEOUT = 2.5;
+    public const DEFAULT_CONNECT_RETRIES = 1;
 
-    const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
-    const LUA_CLEAN_SH1 = '39383dcf36d2e71364a666b2a806bc8219cd332d';
-    const LUA_GC_SH1 = '6990147f5d1999b936dac3b6f7e5d2071908bcf3';
+    public const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
+    public const LUA_CLEAN_SH1 = '39383dcf36d2e71364a666b2a806bc8219cd332d';
+    public const LUA_GC_SH1 = '6990147f5d1999b936dac3b6f7e5d2071908bcf3';
 
     /** @var Credis_Client */
     protected $_redis;
@@ -1294,15 +1294,15 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if ($this->_compressionLib && $level !== 0 && strlen($data) >= $this->_compressThreshold) {
             switch($this->_compressionLib) {
                 case 'snappy': $data = snappy_compress($data);
-                break;
+                    break;
                 case 'lzf':    $data = lzf_compress($data);
-                break;
+                    break;
                 case 'l4z':    $data = lz4_compress($data, $level);
-                break;
+                    break;
                 case 'zstd':   $data = zstd_compress($data, $level);
-                break;
+                    break;
                 case 'gzip':   $data = gzcompress($data, $level);
-                break;
+                    break;
                 default:       throw new CredisException("Unrecognized 'compression_lib'.");
             }
             if (! $data) {

@@ -24,6 +24,6 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit tests",
-        "php-cs-fixer": "php-cs-fixer --rules=@PSR2"
+        "php-cs-fixer": "vendor/bin/php-cs-fixer fix --diff"
     }
 }

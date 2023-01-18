@@ -43,5 +43,8 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress
 
-    - name: Run test suite
+    - name: Run PHPUnit test suite
       run: composer run-script test
+
+    - name: Run PHP CS Fixer
+      run: composer run-script php-cs-fixer -- --dry-run

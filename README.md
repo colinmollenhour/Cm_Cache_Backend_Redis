@@ -27,15 +27,17 @@ As this backend uses [Credis](https://github.com/colinmollenhour/credis) there a
 
 Add the package as a dependency to your project with Composer.
 
-```
-$ composer require colinmollenhour/cache-backend-redis
+```shell
+composer require colinmollenhour/cache-backend-redis
 ```
 
 ### modman
 
 It is not the recommended method, but you may install via [modman](https://github.com/colinmollenhour/modman):
 
-    * `modman clone https://github.com/colinmollenhour/Cm_Cache_Backend_Redis`
+```shell
+modman clone https://github.com/colinmollenhour/Cm_Cache_Backend_Redis
+```
 
 # CONFIGURATION
 
@@ -218,15 +220,22 @@ to read from rather than using md5 hash of the keys.
 
 Please feel free to send Pull Requests to give back your improvements to the community!
 
-You can run the unit tests locally with just Docker installed like so:
+You can run the unit tests locally with just Docker installed using a simple alias:
+
+```shell
+alias cm-cache-backend-redis='docker run --rm -it -e REDIS_SERVER=host.docker.internal -u $(id -u):$(id -g) -v ${COMPOSER_HOME:-$HOME/.composer}:/tmp -v $(pwd):/app --workdir /app cm-cache-backend-redis'
+docker build . -t cm-cache-backend-redis
+```
+
+Then start a Redis server, install Composer dependencies and run tests like so: 
+```shell
+  docker run --rm -d -p 6379 --name cm-cache-backend-redis redis
+  cm-cache-backend-redis composer install
+  cm-cache-backend-redis composer run-script test
+  cm-cache-backend-redis composer run-script php-cs-fixer -- --dry-run
+```
 
 ```
-$ docker run --rm -it -u $(id -u):$(id -g) -v ${COMPOSER_HOME:-$HOME/.composer}:/tmp -v $(pwd):/app composer install
-$ docker run --rm -d -p 6379 redis
-$ docker run --rm -v $(pwd):/app --workdir /app -e REDIS_SERVER=host.docker.internal php:8.2-cli ./vendor/bin/phpunit tests
-```
-
-```
-@copyright  Copyright (c) 2022 Colin Mollenhour (http://colin.mollenhour.com)
+@copyright  Copyright (c) 2022 Colin Mollenhour
 This project is licensed under the "New BSD" license (see source).
 ```
