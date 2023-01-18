@@ -1235,7 +1235,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      * - mtime : timestamp of last modification time
      *
      * @param string $id cache id
-     * @return array array of metadatas (false if the cache id is not found)
+     * @return array|bool array of metadatas (false if the cache id is not found)
      */
     public function getMetadatas($id)
     {
@@ -1264,7 +1264,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function touch($id, $extraLifetime)
     {
-        list($inf) = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_INF);
+        $inf = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_INF);
         if ($inf === '0') {
             $expireAt = time() + $this->_redis->ttl(self::PREFIX_KEY.$id) + $extraLifetime;
             return (bool) $this->_redis->expireAt(self::PREFIX_KEY.$id, $expireAt);

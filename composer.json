@@ -12,9 +12,16 @@
     "require":{
         "colinmollenhour/credis": "*"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^9",
+        "zf1s/zend-cache": "~1.15"
+    },
     "autoload": {
         "classmap": [
             "Cm/Cache/Backend/Redis.php"
         ]
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit tests"
     }
 }

@@ -28,16 +28,14 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-require_once 'app/Mage.php';
-require_once 'Zend/Cache.php';
-require_once 'Cm/Cache/Backend/Redis.php';
+require_once 'vendor/autoload.php';
 require_once 'CommonExtendedBackendTest.php';
 
 /**
  * @copyright  Copyright (c) 2012 Colin Mollenhour (http://colin.mollenhour.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
+class RedisBackendTest extends CommonExtendedBackendTest {
 
     const LUA_MAX_C_STACK = 1000;
 
@@ -47,19 +45,16 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
 
     protected $autoExpireRefreshOnLoad = 0;
 
-    /** @var Cm_Cache_Backend_Redis */
-    protected $_instance;
-
     public function __construct($name = null, array $data = array(), $dataName = '')
     {
         parent::__construct('Cm_Cache_Backend_Redis', $data, $dataName);
     }
 
-    public function setUp($notag = false)
+    public function setUp($notag = false): void
     {
         $this->_instance = new Cm_Cache_Backend_Redis(array(
-            'server' => '127.0.0.1',
-            'port'   => '6379',
+            'server' => getenv('REDIS_SERVER') ?: 'localhost',
+            'port'   => getenv('REDIS_PORT') ?: '6379',
             'database' => '1',
             'notMatchingTags' => TRUE,
             'force_standalone' => $this->forceStandalone,
@@ -75,30 +70,25 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         parent::setUp($notag);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
         unset($this->_instance);
     }
 
-    public function testConstructorCorrectCall()
+    public function testGetWithAnExpiredCacheId(): void
     {
-        // nah
+        $this->markTestSkipped('Getting expired data is unsupported by Redis');
     }
 
-    public function testGetWithAnExpiredCacheId()
-    {
-        // not supported
-    }
-
-    public function testCompression()
+    public function testCompression(): void
     {
         $longString = str_repeat(md5('asd')."\r\n", 50);
         $this->assertTrue($this->_instance->save($longString, 'long', array('long')));
         $this->assertTrue($this->_instance->load('long') == $longString);
     }
 
-    public function testExpiredCleanup()
+    public function testExpiredCleanup(): void
     {
         $this->assertTrue($this->_instance->clean());
         $this->assertTrue($this->_instance->save('BLAH','foo', array('TAG1', 'TAG2'), 1));
@@ -121,20 +111,20 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
             $this->_instance->save('bar2 : data to cache', 'bar2', array('tag3', 'tag1'));
             $this->_instance->save('bar3 : data to cache', 'bar3', array('tag2', 'tag3'));
      */
-    public function testGetIdsMatchingAnyTags()
+    public function testGetIdsMatchingAnyTags(): void
     {
         $res = $this->_instance->getIdsMatchingAnyTags(array('tag999'));
         $this->assertEquals(0, count($res));
     }
 
-    public function testGetIdsMatchingAnyTags2()
+    public function testGetIdsMatchingAnyTags2(): void
     {
         $res = $this->_instance->getIdsMatchingAnyTags(array('tag1', 'tag999'));
         $this->assertEquals(1, count($res));
         $this->assertTrue(in_array('bar2', $res));
     }
 
-    public function testGetIdsMatchingAnyTags3()
+    public function testGetIdsMatchingAnyTags3(): void
     {
         $res = $this->_instance->getIdsMatchingAnyTags(array('tag3', 'tag999'));
         $this->assertEquals(3, count($res));
@@ -143,7 +133,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue(in_array('bar3', $res));
     }
 
-    public function testGetIdsMatchingAnyTags4()
+    public function testGetIdsMatchingAnyTags4(): void
     {
         $res = $this->_instance->getIdsMatchingAnyTags(array('tag1', 'tag4'));
         $this->assertEquals(2, count($res));
@@ -151,7 +141,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue(in_array('bar2', $res));
     }
 
-    public function testCleanModeMatchingAnyTags()
+    public function testCleanModeMatchingAnyTags(): void
     {
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag999'));
         $this->assertTrue(!!$this->_instance->load('bar'));
@@ -159,7 +149,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue(!!$this->_instance->load('bar3'));
     }
 
-    public function testCleanModeMatchingAnyTags2()
+    public function testCleanModeMatchingAnyTags2(): void
     {
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag1', 'tag999'));
         $this->assertTrue(!!$this->_instance->load('bar'));
@@ -167,7 +157,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue(!!$this->_instance->load('bar3'));
     }
 
-    public function testCleanModeMatchingAnyTags3()
+    public function testCleanModeMatchingAnyTags3(): void
     {
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag3', 'tag999'));
         $this->assertFalse(!!$this->_instance->load('bar'));
@@ -175,7 +165,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertFalse(!!$this->_instance->load('bar3'));
     }
 
-    public function testCleanModeMatchingAnyTags4()
+    public function testCleanModeMatchingAnyTags4(): void
     {
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('tag1', 'tag4'));
         $this->assertFalse(!!$this->_instance->load('bar'));
@@ -183,7 +173,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertTrue(!!$this->_instance->load('bar3'));
     }
 
-    public function testCleanModeMatchingAnyTags5()
+    public function testCleanModeMatchingAnyTags5(): void
     {
         $tags = array('tag1', 'tag4');
         for ($i = 0; $i < self::LUA_MAX_C_STACK*5; $i++) {
@@ -194,7 +184,7 @@ class Zend_Cache_RedisBackendTest extends Zend_Cache_CommonExtendedBackendTest {
         $this->assertEquals(0, count($this->_instance->getIdsMatchingAnyTags($tags)));
     }
 
-    public function testCleanModeMatchingAnyTags6()
+    public function testCleanModeMatchingAnyTags6(): void
     {
         $tags = array();
         for ($i = 0; $i < self::LUA_MAX_C_STACK*5; $i++) {

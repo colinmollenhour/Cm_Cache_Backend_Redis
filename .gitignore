@@ -1,1 +1,3 @@
 .basedir
+vendor
+composer.lock
