@@ -80,6 +80,13 @@ abstract class CommonBackendTest extends TestCase
         $this->assertTrue($res);
     }
 
+    public function testSaveWithEmptyString(): void
+    {
+        $this->_instance->setDirectives(array('lifetime' => 3600));
+        $this->assertTrue($this->_instance->save('', 'empty'));
+        $this->assertEquals('', $this->_instance->load('empty'));
+    }
+
     public function testRemoveCorrectCall(): void
     {
         $this->assertTrue($this->_instance->remove('bar'));
