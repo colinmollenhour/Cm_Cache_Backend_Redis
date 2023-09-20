@@ -393,7 +393,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $this->_autoExpireRefreshOnLoad = (bool) $options['auto_expire_refresh_on_load'];
         }
 
-        $this->_directives['load_from_master'] = false;
+        $this->_directives['safe_load'] = false;
     }
 
     /**
@@ -483,7 +483,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
-        if ($this->_slave && empty($this->_directives['load_from_master'])) {
+        if ($this->_slave && empty($this->_directives['safe_load'])) {
             try {
                 $data = $this->_slave->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
 

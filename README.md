@@ -12,7 +12,7 @@ Works with any Zend Framework project including all versions of Magento!
  - Supports configurable compression for memory savings. Can choose between gzip, lzf, l4z, snappy and zstd and can change configuration without flushing cache.
  - Uses transactions to prevent race conditions between saves, cleans or removes causing unexpected results.
  - Supports a configurable "auto expiry lifetime" which, if set, will be used as the TTL when the key otherwise wouldn't expire. In combination with "auto expiry refresh on load" offers a more sane cache management strategy for Magento's `Enterprise_PageCache` module.
- - Supports reading from slaves, can be overridden at run time by setting the 'load_from_master' directive.
+ - Supports reading from slaves, can be overridden at run time by setting the 'safe_load' directive.
  - Can read connection info from Redis Sentinel for automatic failovers.
  - __Unit tested!__
 

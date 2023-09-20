@@ -214,9 +214,9 @@ class RedisBackendTest extends CommonExtendedBackendTest
         $this->assertEquals(['clean'], $this->_instance->___checkScriptsExist());
     }
 
-    public function testLoadFromMaster(): void
+    public function testSafeLoad(): void
     {
-        $this->_instance->setDirectives(['load_from_master' => true]);
+        $this->_instance->setDirectives(['safe_load' => true]);
         $this->assertTrue(true);
     }
 }
