@@ -176,7 +176,7 @@ class RedisBackendTest extends CommonExtendedBackendTest
     public function testCleanModeMatchingAnyTags5(): void
     {
         $tags = array('tag1', 'tag4');
-        for ($i = 0; $i < self::LUA_MAX_C_STACK*5; $i++) {
+        for ($i = 0; $i < self::LUA_MAX_C_STACK * 5; $i++) {
             $this->_instance->save('foo', 'foo'.$i, $tags);
         }
         $this->assertGreaterThan(self::LUA_MAX_C_STACK, count($this->_instance->getIdsMatchingAnyTags($tags)));
@@ -187,7 +187,7 @@ class RedisBackendTest extends CommonExtendedBackendTest
     public function testCleanModeMatchingAnyTags6(): void
     {
         $tags = array();
-        for ($i = 0; $i < self::LUA_MAX_C_STACK*5; $i++) {
+        for ($i = 0; $i < self::LUA_MAX_C_STACK * 5; $i++) {
             $tags[] = 'baz'.$i;
         }
         $this->_instance->save('foo', 'foo', $tags);
