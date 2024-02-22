@@ -99,7 +99,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected $_removeChunkSize = 10000;
 
     /** @var bool */
-    protected $_useLua = true;
+    protected $_useLua = false;
 
     /** @var integer */
     protected $_autoExpireLifetime = 0;
