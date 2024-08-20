@@ -4,24 +4,22 @@ Works with any Zend Framework project including all versions of Magento!
 
 # FEATURES
 
- - Uses the [phpredis PECL extension](https://github.com/nicolasff/phpredis) for best performance (requires **master** branch or tagged version newer than Aug 19 2011).
+ - Can take advantage of the [phpredis PECL extension](https://github.com/phpredis/phpredis) for best performance if it is installed.
  - Falls back to standalone PHP if phpredis isn't available using the [Credis](https://github.com/colinmollenhour/credis) library.
  - Tagging is fully supported, implemented using the Redis "set" and "hash" data types for efficient tag management.
  - Key expiration is handled automatically by Redis.
  - Supports unix socket connection for even better performance on a single machine.
- - Supports configurable compression for memory savings. Can choose between gzip, lzf and snappy and can change configuration without flushing cache.
+ - Supports configurable compression for memory savings. Can choose between gzip, lzf, l4z, snappy and zstd and can change configuration without flushing cache.
  - Uses transactions to prevent race conditions between saves, cleans or removes causing unexpected results.
  - Supports a configurable "auto expiry lifetime" which, if set, will be used as the TTL when the key otherwise wouldn't expire. In combination with "auto expiry refresh on load" offers a more sane cache management strategy for Magento's `Enterprise_PageCache` module.
+ - Supports reading from slaves, can be overridden at run time by setting the 'safe_load' directive.
+ - Can read connection info from Redis Sentinel for automatic failovers.
  - __Unit tested!__
 
 # REQUIREMENTS
 
-As this backend uses [Credis](https://github.com/colinmollenhour/credis) there are no additional requirements, but for improved performance you can install [phpredis](https://github.com/nicolasff/phpredis) which is a compiled extension.
-
-   * For 2.4 support you must use the "master" branch or a tagged version newer than Aug 19, 2011.
-   * phpredis is optional, but it is much faster than standalone mode
-   * phpredis does not support setting read timeouts at the moment (see pull request #260). If you receive read errors (“read error on connection”), this
-     might be the reason.
+This backend uses the [Credis](https://github.com/colinmollenhour/credis) library.
+Optionally, but for improved performance, you can install [phpredis](https://github.com/phpredis/phpredis) which is a compiled extension and available via pecl and many official packages.
 
 # INSTALLATION
 
