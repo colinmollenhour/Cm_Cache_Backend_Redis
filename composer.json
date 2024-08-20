@@ -24,6 +24,7 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit tests",
+        "test-performance": "PERFORMANCE=1 vendor/bin/phpunit tests --filter testLargePayloadLoop",
         "php-cs-fixer": "vendor/bin/php-cs-fixer fix --diff"
     }
 }

@@ -88,6 +88,20 @@ class RedisBackendTest extends CommonExtendedBackendTest
         $this->assertTrue($this->_instance->load('long') == $longString);
     }
 
+    public function testLargePayloadLoop()
+    {
+        if (getenv('PERFORMANCE')) {
+            $longString = file_get_contents(__FILE__);
+            $tags = ['one','two','three','four','five','six','seven','eight','nine','ten'];
+            for ($i = 0; $i < 1000; $i++) {
+                $this->_instance->save($longString, $tags[$i % 10], $tags);
+            }
+            $this->assertTrue(true);
+        } else {
+            $this->markTestSkipped('Skipping large payload test');
+        }
+    }
+
     public function testExpiredCleanup(): void
     {
         $this->assertTrue($this->_instance->clean());

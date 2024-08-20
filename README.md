@@ -229,7 +229,7 @@ docker build . -t cm-cache-backend-redis
 
 Then start a Redis server, install Composer dependencies and run tests like so: 
 ```shell
-  docker run --rm -d -p 6379 --name cm-cache-backend-redis redis
+  docker run --rm -d -p 6379 --name cm-cache-backend-redis redis --maxmemory 20m --maxmemory-policy noeviction
   cm-cache-backend-redis composer install
   cm-cache-backend-redis composer run-script test
   cm-cache-backend-redis composer run-script php-cs-fixer -- --dry-run
