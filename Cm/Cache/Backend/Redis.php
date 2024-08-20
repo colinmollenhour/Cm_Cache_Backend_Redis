@@ -54,7 +54,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     public const DEFAULT_CONNECT_TIMEOUT = 2.5;
     public const DEFAULT_CONNECT_RETRIES = 1;
 
-    public const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
+    public const LUA_SAVE_SH1 = '53b0ce68d65b4968faf28f22334febabf59fccf6';
     public const LUA_CLEAN_SH1 = '39383dcf36d2e71364a666b2a806bc8219cd332d';
     public const LUA_GC_SH1 = '6990147f5d1999b936dac3b6f7e5d2071908bcf3';
 
@@ -587,57 +587,53 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $lifetime = $lifetime === null ? $lifetime : (int) $lifetime;
 
         if ($this->_useLua) {
-            $sArgs = array(
-                self::PREFIX_KEY,
-                self::FIELD_DATA,
-                self::FIELD_TAGS,
-                self::FIELD_MTIME,
-                self::FIELD_INF,
-                self::SET_TAGS,
-                self::PREFIX_TAG_IDS,
-                self::SET_IDS,
-                $id,
-                $this->_encodeData($data, $this->_compressData),
-                $this->_encodeData(implode(',', $tags), $this->_compressTags),
-                time(),
-                $lifetime ? 0 : 1,
-                min($lifetime, self::MAX_LIFETIME),
-                $this->_notMatchingTags ? 1 : 0
-            );
+            // Get old tags for comparison later
+            $oldTags = $this->_redis->hGet(self::PREFIX_KEY.$id, self::FIELD_TAGS);
 
+            // Set the data in a separate request to avoid heavy time spent encoding/decoding in lua
+            $result = $this->_redis->hMSet(self::PREFIX_KEY.$id, array(
+                self::FIELD_DATA => $this->_encodeData($data, $this->_compressData),
+                self::FIELD_TAGS => $this->_encodeData(implode(',', $tags), $this->_compressTags),
+                self::FIELD_MTIME => time(),
+                self::FIELD_INF => is_null($lifetime) ? 1 : 0,
+            ));
+            if (! $result) {
+                throw new CredisException("Could not set cache key $id");
+            }
+
+            // Update the tags in a lua script for atomicity
+            $sArgs = [
+                /* 1 */ self::PREFIX_KEY,
+                /* 2 */ self::PREFIX_TAG_IDS,
+                /* 3 */ self::SET_TAGS,
+                /* 4 */ $id,
+                /* 5 */ $this->_notMatchingTags ? self::SET_IDS : '',
+                /* 6 */ $lifetime ? min($lifetime, self::MAX_LIFETIME) : 0,
+            ];
             $res = $this->_redis->evalSha(self::LUA_SAVE_SH1, $tags, $sArgs);
             if (is_null($res)) {
                 $script =
-                    "local oldTags = redis.call('HGET', ARGV[1]..ARGV[9], ARGV[3]) ".
-                    "redis.call('HMSET', ARGV[1]..ARGV[9], ARGV[2], ARGV[10], ARGV[3], ARGV[11], ARGV[4], ARGV[12], ARGV[5], ARGV[13]) ".
-                    "if (ARGV[13] == '0') then ".
-                        "redis.call('EXPIRE', ARGV[1]..ARGV[9], ARGV[14]) ".
+                    "if (ARGV[6] ~= '0') then ".
+                        "redis.call('EXPIRE', ARGV[1]..ARGV[4], ARGV[6]) ".
                     "end ".
                     "if next(KEYS) ~= nil then ".
-                        "redis.call('SADD', ARGV[6], unpack(KEYS)) ".
+                        "redis.call('SADD', ARGV[3], unpack(KEYS)) ".
                         "for _, tagname in ipairs(KEYS) do ".
-                            "redis.call('SADD', ARGV[7]..tagname, ARGV[9]) ".
+                            "redis.call('SADD', ARGV[2]..tagname, ARGV[4]) ".
                         "end ".
                     "end ".
-                    "if (ARGV[15] == '1') then ".
-                        "redis.call('SADD', ARGV[8], ARGV[9]) ".
-                    "end ".
-                    "if (oldTags ~= false) then ".
-                        "return oldTags ".
-                    "else ".
-                        "return '' ".
+                    "if (ARGV[5] ~= '') then ".
+                        "redis.call('SADD', ARGV[5], ARGV[4]) ".
                     "end";
-                $res = $this->_redis->eval($script, $tags, $sArgs);
+                $this->_redis->eval($script, $tags, $sArgs);
             }
 
             // Process removed tags if cache entry already existed
-            if ($res) {
-                $oldTags = explode(',', $this->_decodeData($res));
-                if ($remTags = ($oldTags ? array_diff($oldTags, $tags) : false)) {
-                    // Update the id list for each tag
-                    foreach ($remTags as $tag) {
-                        $this->_redis->sRem(self::PREFIX_TAG_IDS . $tag, $id);
-                    }
+            if ($oldTags) {
+                $oldTags = explode(',', $this->_decodeData($oldTags));
+                $remTags = array_diff($oldTags, $tags);
+                foreach ($remTags as $tag) {
+                    $this->_redis->sRem(self::PREFIX_TAG_IDS . $tag, $id);
                 }
             }
 
