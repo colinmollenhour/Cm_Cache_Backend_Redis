@@ -221,7 +221,8 @@ class RedisBackendTest extends CommonExtendedBackendTest
 
         $this->_instance->___scriptFlush();
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_OLD);
-        $this->assertEquals(['garbage'], $this->_instance->___checkScriptsExist());
+        // The new iterative GC uses EVAL directly in pipeline, so no scripts are cached
+        $this->assertEquals([], $this->_instance->___checkScriptsExist());
 
         $this->_instance->___scriptFlush();
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, ['x']);
