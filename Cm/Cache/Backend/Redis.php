@@ -950,11 +950,14 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         foreach ($allTags as $tag) {
             $tagKey = self::PREFIX_TAG_IDS . $tag;
-            $cursor = null;  // phpredis requires null for the first iteration
+            // phpredis requires null for the first iteration; standalone PHP uses 0
+            // Credis handles this abstraction via the cursor parameter passed by reference
+            $cursor = null;
             $totalNotExpired = 0;
 
             do {
                 // Use SSCAN to iterate through members in chunks
+                // Parameters: sscan(&$cursor, $field, $pattern, $count)
                 $members = $this->_redis->sscan($cursor, $tagKey, null, $this->_gcScanCount);
 
                 if (empty($members) || $members === false) {
