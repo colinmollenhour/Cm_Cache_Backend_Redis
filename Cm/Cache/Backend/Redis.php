@@ -392,6 +392,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if (isset($options['auto_expire_refresh_on_load'])) {
             $this->_autoExpireRefreshOnLoad = (bool) $options['auto_expire_refresh_on_load'];
         }
+
+        $this->_directives['safe_load'] = false;
     }
 
     /**
@@ -481,7 +483,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
-        if ($this->_slave) {
+        if ($this->_slave && empty($this->_directives['safe_load'])) {
             try {
                 $data = $this->_slave->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
 
@@ -951,8 +953,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         // TODO
         // Clean up global list of ids for ids with no tag
-//        if ($this->_notMatchingTags) {
-//        }
+        // if ($this->_notMatchingTags) {
+        // }
     }
 
     /**
@@ -1194,7 +1196,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
         $info = $this->_redis->info();
         return (int) round(
-            ($info['used_memory']/$maxMem['maxmemory']*100)
+            ($info['used_memory'] / $maxMem['maxmemory'] * 100)
         );
     }
 
@@ -1213,10 +1215,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
         $hits = $info['keyspace_hits'];
         $misses = $info['keyspace_misses'];
-        $total = $misses+$hits;
+        $total = $misses + $hits;
         $percentage = 0;
         if ($total > 0) {
-            $percentage = round($hits*100/$total);
+            $percentage = round($hits * 100 / $total);
         }
         return $percentage;
     }
