@@ -176,7 +176,30 @@ The instructions to find the primary and read replica endpoints are [here](http:
 
 Previously the ElastiCache config instructions suggested setting up a `<cluster>` node but this functionality was flawed
 and is no longer supported. The config is still parsed and loaded for backwards-compatibility but chooses a random slave
-to read from rather than using md5 hash of the keys. 
+to read from rather than using md5 hash of the keys.
+
+### Dragonfly
+
+[Dragonfly](https://www.dragonflydb.io/) is a modern Redis-compatible in-memory data store. This backend includes support
+for Dragonfly with the following considerations:
+
+**Lua Scripts Compatibility**
+
+Dragonfly requires explicit declaration of keys used in Lua scripts. This backend includes the necessary
+`--!df flags=allow-undeclared-keys` annotations in all Lua scripts to enable compatibility.
+
+**Performance Optimization**
+
+For improved performance, you can run Dragonfly with disabled atomicity for Lua scripts:
+
+```shell
+dragonfly --default_lua_flags="disable-atomicity"
+```
+
+> **Warning:** When using `disable-atomicity`, Lua scripts will not execute atomically. Since the Lua scripts in this
+> backend use global keys, there is a possibility of race conditions during concurrent operations. However, the final
+> state should remain consistent. Additional testing in your specific environment is recommended before using this
+> option in production.
 
 # TUNING
 
