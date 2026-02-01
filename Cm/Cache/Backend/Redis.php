@@ -1062,24 +1062,6 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     }
 
     /**
-     * Execute the safeDeleteTagKey Lua script
-     * Atomically checks if a key exists and removes it from tag sets if it doesn't
-     *
-     * @param string $keyName Full key name (with prefix)
-     * @param string $tagKey Tag set key
-     * @param string $id Cache ID
-     * @return mixed
-     */
-    protected function _evalSafeDeleteTagKey($keyName, $tagKey, $id)
-    {
-        $keys = array($keyName, $tagKey, self::SET_IDS);
-        $args = array($id, $this->_notMatchingTags ? '1' : '0');
-
-        // Use evalSha directly - script should be loaded by now
-        return $this->_redis->evalSha(self::LUA_SAFE_DELETE_TAG_KEY_SH1, $keys, $args);
-    }
-
-    /**
      * Execute the safeDeleteTagKey Lua script using EVAL (for fallback in pipeline)
      *
      * @param string $keyName Full key name (with prefix)
