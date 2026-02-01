@@ -1057,7 +1057,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 $this->_redis->script('load', $script);
             }
         } catch (CredisException $e) {
-            // If script command fails, we'll fall back to eval in _evalSafeDeleteTagKey
+            // If script command fails, we'll fall back to eval in _evalSafeDeleteTagKeyWithEval
         }
     }
 
