@@ -1,4 +1,5 @@
 <?php
+
 /*
 ==New BSD License==
 
@@ -1306,7 +1307,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     protected function _encodeData($data, $level)
     {
         if ($this->_compressionLib && $level !== 0 && strlen($data) >= $this->_compressThreshold) {
-            switch($this->_compressionLib) {
+            switch ($this->_compressionLib) {
                 case 'snappy': $data = snappy_compress($data);
                     break;
                 case 'lzf':    $data = lzf_compress($data);
@@ -1335,7 +1336,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     {
         try {
             if (substr($data, 2, 3) == self::COMPRESS_PREFIX) {
-                switch(substr($data, 0, 2)) {
+                switch (substr($data, 0, 2)) {
                     case 'sn': return snappy_uncompress(substr($data, 5));
                     case 'lz': return lzf_decompress(substr($data, 5));
                     case 'l4': return lz4_uncompress(substr($data, 5));
@@ -1343,7 +1344,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                     case 'gz': case 'zc': return gzuncompress(substr($data, 5));
                 }
             }
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             // Some applications will capture the php error that these functions can sometimes generate and throw it as an Exception
             $data = false;
         }
