@@ -242,7 +242,7 @@ class RedisBackendTest extends CommonExtendedBackendTest
     public function testSaveWithMixedArrayKeys(): void
     {
         // Clean up first
-        $this->_instance->clean();
+        $this->assertTrue($this->_instance->clean());
         
         // Create a mixed array with both numeric and string keys
         // This simulates what Magento does in some cases
