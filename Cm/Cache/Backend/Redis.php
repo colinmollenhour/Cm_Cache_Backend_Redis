@@ -1030,7 +1030,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             }
 
             // Give Redis some time to handle other requests
-            usleep(20000);
+            usleep(1000);
         }
 
         unset($exists);
