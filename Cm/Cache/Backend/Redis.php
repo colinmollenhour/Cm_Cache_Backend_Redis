@@ -582,7 +582,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if (!is_array($tags)) {
             $tags = $tags ? array($tags) : array();
         } else {
-            $tags = array_flip(array_flip($tags));
+            // Deduplicate tags and ensure sequential numeric keys
+            // This prevents corruption when tags contain mixed array keys (numeric + string)
+            $tags = array_values(array_flip(array_flip($tags)));
         }
 
         $lifetime = $this->_getAutoExpiringLifetime($this->getLifetime($specificLifetime), $id);
