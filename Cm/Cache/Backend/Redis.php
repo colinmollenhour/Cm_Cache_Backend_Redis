@@ -427,6 +427,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         if (isset($options['gc_remove_chunk_size']) && $options['gc_remove_chunk_size'] > 0) {
             $this->_gcRemoveChunkSize = (int) $options['gc_remove_chunk_size'];
         }
+
+        $this->_directives['safe_load'] = false;
     }
 
     /**
@@ -516,7 +518,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
-        if ($this->_slave) {
+        if ($this->_slave && empty($this->_directives['safe_load'])) {
             try {
                 $data = $this->_slave->hGet(self::PREFIX_KEY.$id, self::FIELD_DATA);
 
@@ -932,8 +934,8 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
         // TODO
         // Clean up global list of ids for ids with no tag
-        //        if ($this->_notMatchingTags) {
-        //        }
+        // if ($this->_notMatchingTags) {
+        // }
     }
 
     /**

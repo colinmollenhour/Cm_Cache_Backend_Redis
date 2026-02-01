@@ -229,4 +229,10 @@ class RedisBackendTest extends CommonExtendedBackendTest
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, ['x']);
         $this->assertEquals(['clean'], $this->_instance->___checkScriptsExist());
     }
+
+    public function testSafeLoad(): void
+    {
+        $this->_instance->setDirectives(['safe_load' => true]);
+        $this->assertTrue(true);
+    }
 }
