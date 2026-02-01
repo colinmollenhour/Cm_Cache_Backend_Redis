@@ -55,9 +55,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     public const DEFAULT_CONNECT_TIMEOUT = 2.5;
     public const DEFAULT_CONNECT_RETRIES = 1;
 
-    public const LUA_SAVE_SH1 = '1617c9fb2bda7d790bb1aaa320c1099d81825e64';
-    public const LUA_CLEAN_SH1 = '39383dcf36d2e71364a666b2a806bc8219cd332d';
-    public const LUA_GC_SH1 = '6990147f5d1999b936dac3b6f7e5d2071908bcf3';
+    public const LUA_SAVE_SH1 = '1aa53383846dbeb66b01e7f17908449a96ddf717';
+    public const LUA_CLEAN_SH1 = '321be2370adbc52c83c52a33b72921111a989a6d';
+    public const LUA_GC_SH1 = '0a71531291ec58a1b116d9787370b9179808a633';
     public const LUA_SAFE_DELETE_TAG_KEY_SH1 = 'e045179d758adff8057e7bb9d15a365e86eb2ba9';
 
     /** @var Credis_Client */
@@ -645,6 +645,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             $res = $this->_redis->evalSha(self::LUA_SAVE_SH1, $tags, $sArgs);
             if (is_null($res)) {
                 $script =
+                    "--!df flags=allow-undeclared-keys\n" .
                     "local oldTags = redis.call('HGET', ARGV[1]..ARGV[9], ARGV[3]) ".
                     "redis.call('HMSET', ARGV[1]..ARGV[9], ARGV[2], ARGV[10], ARGV[3], ARGV[11], ARGV[4], ARGV[12], ARGV[5], ARGV[13]) ".
                     "if (ARGV[13] == '0') then ".
@@ -816,6 +817,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 $args = array(self::PREFIX_TAG_IDS, self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0), (int) $this->_luaMaxCStack);
                 if (! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $chunk, $args)) {
                     $script =
+                        "--!df flags=allow-undeclared-keys\n" .
                         "for i = 1, #KEYS, ARGV[6] do " .
                             "local prefixedTags = {} " .
                             "for x, tag in ipairs(KEYS) do " .
