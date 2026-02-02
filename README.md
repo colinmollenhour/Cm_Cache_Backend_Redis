@@ -62,6 +62,9 @@ Edit `app/etc/local.xml` to configure:
             <compress_threshold>20480</compress_threshold>  <!-- Strings below this size will not be compressed -->
             <compression_lib>gzip</compression_lib> <!-- Supports gzip, lzf, lz4 (as l4z), snappy and zstd -->
             <use_lua>0</use_lua> <!-- Set to 1 if Lua scripts should be used for some operations (recommended) -->
+            <gc_scan_count>500</gc_scan_count> <!-- Number of tag members to scan per iteration during garbage collection (default: 500) -->
+            <gc_exists_cache_size>300000</gc_exists_cache_size> <!-- Max size of local cache to reduce redundant EXISTS checks during GC (default: 300000) -->
+            <gc_remove_chunk_size>100</gc_remove_chunk_size> <!-- Number of expired IDs to remove in a batch during garbage collection (default: 100) -->
             <load_from_slave>tcp://redis-slave:6379</load_from_slave> <!-- Perform reads from a different server --> 
           </backend_options>
         </cache>
@@ -176,7 +179,30 @@ The instructions to find the primary and read replica endpoints are [here](http:
 
 Previously the ElastiCache config instructions suggested setting up a `<cluster>` node but this functionality was flawed
 and is no longer supported. The config is still parsed and loaded for backwards-compatibility but chooses a random slave
-to read from rather than using md5 hash of the keys. 
+to read from rather than using md5 hash of the keys.
+
+### Dragonfly
+
+[Dragonfly](https://www.dragonflydb.io/) is a modern Redis-compatible in-memory data store. This backend includes support
+for Dragonfly with the following considerations:
+
+**Lua Scripts Compatibility**
+
+Dragonfly requires explicit declaration of keys used in Lua scripts. This backend includes the necessary
+`--!df flags=allow-undeclared-keys` annotations in all Lua scripts to enable compatibility.
+
+**Performance Optimization**
+
+For improved performance, you can run Dragonfly with disabled atomicity for Lua scripts:
+
+```shell
+dragonfly --default_lua_flags="disable-atomicity"
+```
+
+> **Warning:** When using `disable-atomicity`, Lua scripts will not execute atomically. Since the Lua scripts in this
+> backend use global keys, there is a possibility of race conditions during concurrent operations. However, the final
+> state should remain consistent. Additional testing in your specific environment is recommended before using this
+> option in production.
 
 # TUNING
 
@@ -188,6 +214,11 @@ to read from rather than using md5 hash of the keys.
  - Occasional (e.g. once a day) garbage collection is recommended if the entire cache is infrequently cleared and
    automatic cleaning is not enabled. The best solution is to run a cron job which does the garbage collection.
    (See "Example Garbage Collection Script" below.)
+ - When `use_lua` is enabled, garbage collection uses an iterative SSCAN-based approach to avoid blocking Redis
+   for extended periods. You can tune the performance with:
+   - `gc_scan_count` (default: 500) - Number of tag members to scan per iteration. Higher values are faster but block longer.
+   - `gc_exists_cache_size` (default: 300000) - Size of local cache to reduce redundant EXISTS checks across tags.
+   - `gc_remove_chunk_size` (default: 100) - Number of expired IDs to remove in a batch. Smaller values yield control more frequently.
  - Compression will have additional CPU overhead but may be worth it for memory savings and reduced traffic.
    For high-latency networks it may even improve performance. Use the
    [Magento Cache Benchmark](https://github.com/colinmollenhour/magento-cache-benchmark) to analyze your real-world
