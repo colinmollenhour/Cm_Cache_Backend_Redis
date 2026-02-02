@@ -237,6 +237,45 @@ class RedisBackendTest extends CommonExtendedBackendTest
     }
 
     /**
+     * Test saving with mixed array keys (both numeric and string keys)
+     * This reproduces the issue where Magento passes tags like:
+     * ["0" => "40d_CONFIG", "1" => "40d_MAGE", "EAV" => "40d_EAV"]
+     */
+    public function testSaveWithMixedArrayKeys(): void
+    {
+        // Clean up first
+        $this->assertTrue($this->_instance->clean());
+
+        // Create a mixed array with both numeric and string keys
+        // This simulates what Magento does in some cases
+        $mixedTags = [
+            0 => 'TAG_CONFIG',
+            1 => 'TAG_MAGE',
+            'EAV' => 'TAG_EAV'
+        ];
+
+        $id = 'test_mixed_tags';
+        $data = 'test data with mixed tags';
+
+        // Save should work without corrupting arguments
+        $this->assertTrue($this->_instance->save($data, $id, $mixedTags));
+
+        // Load should return the correct data
+        $loaded = $this->_instance->load($id);
+        $this->assertEquals($data, $loaded);
+
+        // All tags should be properly saved and retrievable
+        $ids = $this->_instance->getIdsMatchingAnyTags(['TAG_CONFIG']);
+        $this->assertContains($id, $ids);
+
+        $ids = $this->_instance->getIdsMatchingAnyTags(['TAG_MAGE']);
+        $this->assertContains($id, $ids);
+
+        $ids = $this->_instance->getIdsMatchingAnyTags(['TAG_EAV']);
+        $this->assertContains($id, $ids);
+    }
+
+    /**
      * Test that all Lua script SHA1 hashes match their script contents.
      * This ensures that if a script is modified, the corresponding SHA1 constant is updated.
      * This test makes it IMPOSSIBLE to pass tests with incorrect hashes.
