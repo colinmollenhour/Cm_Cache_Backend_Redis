@@ -58,7 +58,59 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
     public const LUA_SAVE_SH1 = '1aa53383846dbeb66b01e7f17908449a96ddf717';
     public const LUA_CLEAN_SH1 = '321be2370adbc52c83c52a33b72921111a989a6d';
     public const LUA_GC_SH1 = '0a71531291ec58a1b116d9787370b9179808a633';
-    public const LUA_SAFE_DELETE_TAG_KEY_SH1 = 'e045179d758adff8057e7bb9d15a365e86eb2ba9';
+    public const LUA_SAFE_DELETE_TAG_KEY_SH1 = '9af41155cf293a95fd1a39368fecfbe408362380';
+
+    public const LUA_SAVE_SCRIPT =
+        "--!df flags=allow-undeclared-keys\n" .
+        "local oldTags = redis.call('HGET', ARGV[1]..ARGV[9], ARGV[3]) ".
+        "redis.call('HMSET', ARGV[1]..ARGV[9], ARGV[2], ARGV[10], ARGV[3], ARGV[11], ARGV[4], ARGV[12], ARGV[5], ARGV[13]) ".
+        "if (ARGV[13] == '0') then ".
+            "redis.call('EXPIRE', ARGV[1]..ARGV[9], ARGV[14]) ".
+        "end ".
+        "if next(KEYS) ~= nil then ".
+            "redis.call('SADD', ARGV[6], unpack(KEYS)) ".
+            "for _, tagname in ipairs(KEYS) do ".
+                "redis.call('SADD', ARGV[7]..tagname, ARGV[9]) ".
+            "end ".
+        "end ".
+        "if (ARGV[15] == '1') then ".
+            "redis.call('SADD', ARGV[8], ARGV[9]) ".
+        "end ".
+        "if (oldTags ~= false) then ".
+            "return oldTags ".
+        "else ".
+            "return '' ".
+        "end";
+
+    public const LUA_CLEAN_SCRIPT =
+        "--!df flags=allow-undeclared-keys\n" .
+        "for i = 1, #KEYS, ARGV[6] do " .
+            "local prefixedTags = {} " .
+            "for x, tag in ipairs(KEYS) do " .
+                "prefixedTags[x] = ARGV[1]..tag " .
+            "end " .
+            "local keysToDel = redis.call('SUNION', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+            "for _, keyname in ipairs(keysToDel) do " .
+                "redis.call('UNLINK', ARGV[2]..keyname) " .
+                "if (ARGV[5] == '1') then " .
+                    "redis.call('SREM', ARGV[4], keyname) " .
+                "end " .
+            "end " .
+            "redis.call('UNLINK', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+            "redis.call('SREM', ARGV[3], unpack(KEYS, i, math.min(#KEYS, i + ARGV[6] - 1))) " .
+        "end " .
+        "return true";
+
+    public const LUA_SAFE_DELETE_TAG_KEY_SCRIPT =
+        "--!df flags=allow-undeclared-keys\n" .
+        "local existsNow = redis.call('EXISTS', KEYS[1]) " .
+        "if existsNow == 0 then " .
+            "redis.call('SREM', KEYS[2], ARGV[1]) " .
+            "if ARGV[2] == '1' then " .
+                "redis.call('SREM', KEYS[3], ARGV[1]) " .
+            "end " .
+        "end " .
+        "return existsNow";
 
     /** @var Credis_Client */
     protected $_redis;
@@ -644,28 +696,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
             $res = $this->_redis->evalSha(self::LUA_SAVE_SH1, $tags, $sArgs);
             if (is_null($res)) {
-                $script =
-                    "--!df flags=allow-undeclared-keys\n" .
-                    "local oldTags = redis.call('HGET', ARGV[1]..ARGV[9], ARGV[3]) ".
-                    "redis.call('HMSET', ARGV[1]..ARGV[9], ARGV[2], ARGV[10], ARGV[3], ARGV[11], ARGV[4], ARGV[12], ARGV[5], ARGV[13]) ".
-                    "if (ARGV[13] == '0') then ".
-                        "redis.call('EXPIRE', ARGV[1]..ARGV[9], ARGV[14]) ".
-                    "end ".
-                    "if next(KEYS) ~= nil then ".
-                        "redis.call('SADD', ARGV[6], unpack(KEYS)) ".
-                        "for _, tagname in ipairs(KEYS) do ".
-                            "redis.call('SADD', ARGV[7]..tagname, ARGV[9]) ".
-                        "end ".
-                    "end ".
-                    "if (ARGV[15] == '1') then ".
-                        "redis.call('SADD', ARGV[8], ARGV[9]) ".
-                    "end ".
-                    "if (oldTags ~= false) then ".
-                        "return oldTags ".
-                    "else ".
-                        "return '' ".
-                    "end";
-                $res = $this->_redis->eval($script, $tags, $sArgs);
+                $res = $this->_redis->eval(self::LUA_SAVE_SCRIPT, $tags, $sArgs);
             }
 
             // Process removed tags if cache entry already existed
@@ -816,25 +847,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
             foreach ($tags as $chunk) {
                 $args = array(self::PREFIX_TAG_IDS, self::PREFIX_KEY, self::SET_TAGS, self::SET_IDS, ($this->_notMatchingTags ? 1 : 0), (int) $this->_luaMaxCStack);
                 if (! $this->_redis->evalSha(self::LUA_CLEAN_SH1, $chunk, $args)) {
-                    $script =
-                        "--!df flags=allow-undeclared-keys\n" .
-                        "for i = 1, #KEYS, ARGV[6] do " .
-                            "local prefixedTags = {} " .
-                            "for x, tag in ipairs(KEYS) do " .
-                                "prefixedTags[x] = ARGV[1]..tag " .
-                            "end " .
-                            "local keysToDel = redis.call('SUNION', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
-                            "for _, keyname in ipairs(keysToDel) do " .
-                                "redis.call('UNLINK', ARGV[2]..keyname) " .
-                                "if (ARGV[5] == '1') then " .
-                                    "redis.call('SREM', ARGV[4], keyname) " .
-                                "end " .
-                            "end " .
-                            "redis.call('UNLINK', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
-                            "redis.call('SREM', ARGV[3], unpack(KEYS, i, math.min(#KEYS, i + ARGV[6] - 1))) " .
-                        "end " .
-                        "return true";
-                    $this->_redis->eval($script, $chunk, $args);
+                    $this->_redis->eval(self::LUA_CLEAN_SCRIPT, $chunk, $args);
                 }
             }
             return;
@@ -1043,22 +1056,12 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _loadSafeDeleteTagKeyScript()
     {
-        $script =
-            "local existsNow = redis.call('EXISTS', KEYS[1]) ".
-            "if existsNow == 0 then ".
-                "redis.call('SREM', KEYS[2], ARGV[1]) ".
-                "if ARGV[2] == '1' then ".
-                    "redis.call('SREM', KEYS[3], ARGV[1]) ".
-                "end ".
-            "end ".
-            "return existsNow";
-
         try {
             // Check if script exists
             $result = $this->_redis->script('exists', self::LUA_SAFE_DELETE_TAG_KEY_SH1);
             if (empty($result[0])) {
                 // Script not loaded, load it now
-                $this->_redis->script('load', $script);
+                $this->_redis->script('load', self::LUA_SAFE_DELETE_TAG_KEY_SCRIPT);
             }
         } catch (CredisException $e) {
             // If script command fails, we'll fall back to eval in _evalSafeDeleteTagKeyWithEval
@@ -1078,17 +1081,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         $keys = array($keyName, $tagKey, self::SET_IDS);
         $args = array($id, $this->_notMatchingTags ? '1' : '0');
 
-        $script =
-            "local existsNow = redis.call('EXISTS', KEYS[1]) ".
-            "if existsNow == 0 then ".
-                "redis.call('SREM', KEYS[2], ARGV[1]) ".
-                "if ARGV[2] == '1' then ".
-                    "redis.call('SREM', KEYS[3], ARGV[1]) ".
-                "end ".
-            "end ".
-            "return existsNow";
-
-        return $this->_redis->eval($script, $keys, $args);
+        return $this->_redis->eval(self::LUA_SAFE_DELETE_TAG_KEY_SCRIPT, $keys, $args);
     }
 
     /**

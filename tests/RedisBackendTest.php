@@ -222,8 +222,8 @@ class RedisBackendTest extends CommonExtendedBackendTest
 
         $this->_instance->___scriptFlush();
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_OLD);
-        // The new iterative GC uses EVAL directly in pipeline, so no scripts are cached
-        $this->assertEquals([], $this->_instance->___checkScriptsExist());
+        // The new iterative GC loads the safeDeleteTagKey script
+        $this->assertEquals(['safeDeleteTagKey'], $this->_instance->___checkScriptsExist());
 
         $this->_instance->___scriptFlush();
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, ['x']);
@@ -234,5 +234,40 @@ class RedisBackendTest extends CommonExtendedBackendTest
     {
         $this->_instance->setDirectives(['safe_load' => true]);
         $this->assertTrue(true);
+    }
+
+    /**
+     * Test that all Lua script SHA1 hashes match their script contents.
+     * This ensures that if a script is modified, the corresponding SHA1 constant is updated.
+     * This test makes it IMPOSSIBLE to pass tests with incorrect hashes.
+     */
+    public function testLuaScriptHashesAreCorrect(): void
+    {
+        // Test LUA_SAVE_SH1
+        $expectedSaveSha1 = sha1(Cm_Cache_Backend_Redis::LUA_SAVE_SCRIPT);
+        $this->assertEquals(
+            $expectedSaveSha1,
+            Cm_Cache_Backend_Redis::LUA_SAVE_SH1,
+            "LUA_SAVE_SH1 hash does not match the LUA_SAVE_SCRIPT content. " .
+            "Expected: {$expectedSaveSha1}, Got: " . Cm_Cache_Backend_Redis::LUA_SAVE_SH1
+        );
+
+        // Test LUA_CLEAN_SH1
+        $expectedCleanSha1 = sha1(Cm_Cache_Backend_Redis::LUA_CLEAN_SCRIPT);
+        $this->assertEquals(
+            $expectedCleanSha1,
+            Cm_Cache_Backend_Redis::LUA_CLEAN_SH1,
+            "LUA_CLEAN_SH1 hash does not match the LUA_CLEAN_SCRIPT content. " .
+            "Expected: {$expectedCleanSha1}, Got: " . Cm_Cache_Backend_Redis::LUA_CLEAN_SH1
+        );
+
+        // Test LUA_SAFE_DELETE_TAG_KEY_SH1
+        $expectedSafeDeleteSha1 = sha1(Cm_Cache_Backend_Redis::LUA_SAFE_DELETE_TAG_KEY_SCRIPT);
+        $this->assertEquals(
+            $expectedSafeDeleteSha1,
+            Cm_Cache_Backend_Redis::LUA_SAFE_DELETE_TAG_KEY_SH1,
+            "LUA_SAFE_DELETE_TAG_KEY_SH1 hash does not match the LUA_SAFE_DELETE_TAG_KEY_SCRIPT content. " .
+            "Expected: {$expectedSafeDeleteSha1}, Got: " . Cm_Cache_Backend_Redis::LUA_SAFE_DELETE_TAG_KEY_SH1
+        );
     }
 }
