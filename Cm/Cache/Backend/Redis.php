@@ -65,39 +65,39 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         "local oldTags = redis.call('HGET', ARGV[1]..ARGV[9], ARGV[3]) ".
         "redis.call('HMSET', ARGV[1]..ARGV[9], ARGV[2], ARGV[10], ARGV[3], ARGV[11], ARGV[4], ARGV[12], ARGV[5], ARGV[13]) ".
         "if (ARGV[13] == '0') then ".
-            "redis.call('EXPIRE', ARGV[1]..ARGV[9], ARGV[14]) ".
+        "redis.call('EXPIRE', ARGV[1]..ARGV[9], ARGV[14]) ".
         "end ".
         "if next(KEYS) ~= nil then ".
-            "redis.call('SADD', ARGV[6], unpack(KEYS)) ".
-            "for _, tagname in ipairs(KEYS) do ".
-                "redis.call('SADD', ARGV[7]..tagname, ARGV[9]) ".
-            "end ".
+        "redis.call('SADD', ARGV[6], unpack(KEYS)) ".
+        "for _, tagname in ipairs(KEYS) do ".
+        "redis.call('SADD', ARGV[7]..tagname, ARGV[9]) ".
+        "end ".
         "end ".
         "if (ARGV[15] == '1') then ".
-            "redis.call('SADD', ARGV[8], ARGV[9]) ".
+        "redis.call('SADD', ARGV[8], ARGV[9]) ".
         "end ".
         "if (oldTags ~= false) then ".
-            "return oldTags ".
+        "return oldTags ".
         "else ".
-            "return '' ".
+        "return '' ".
         "end";
 
     public const LUA_CLEAN_SCRIPT =
         "--!df flags=allow-undeclared-keys\n" .
         "for i = 1, #KEYS, ARGV[6] do " .
-            "local prefixedTags = {} " .
-            "for x, tag in ipairs(KEYS) do " .
-                "prefixedTags[x] = ARGV[1]..tag " .
-            "end " .
-            "local keysToDel = redis.call('SUNION', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
-            "for _, keyname in ipairs(keysToDel) do " .
-                "redis.call('UNLINK', ARGV[2]..keyname) " .
-                "if (ARGV[5] == '1') then " .
-                    "redis.call('SREM', ARGV[4], keyname) " .
-                "end " .
-            "end " .
-            "redis.call('UNLINK', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
-            "redis.call('SREM', ARGV[3], unpack(KEYS, i, math.min(#KEYS, i + ARGV[6] - 1))) " .
+        "local prefixedTags = {} " .
+        "for x, tag in ipairs(KEYS) do " .
+        "prefixedTags[x] = ARGV[1]..tag " .
+        "end " .
+        "local keysToDel = redis.call('SUNION', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+        "for _, keyname in ipairs(keysToDel) do " .
+        "redis.call('UNLINK', ARGV[2]..keyname) " .
+        "if (ARGV[5] == '1') then " .
+        "redis.call('SREM', ARGV[4], keyname) " .
+        "end " .
+        "end " .
+        "redis.call('UNLINK', unpack(prefixedTags, i, math.min(#prefixedTags, i + ARGV[6] - 1))) " .
+        "redis.call('SREM', ARGV[3], unpack(KEYS, i, math.min(#KEYS, i + ARGV[6] - 1))) " .
         "end " .
         "return true";
 
@@ -105,10 +105,10 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         "--!df flags=allow-undeclared-keys\n" .
         "local existsNow = redis.call('EXISTS', KEYS[1]) " .
         "if existsNow == 0 then " .
-            "redis.call('SREM', KEYS[2], ARGV[1]) " .
-            "if ARGV[2] == '1' then " .
-                "redis.call('SREM', KEYS[3], ARGV[1]) " .
-            "end " .
+        "redis.call('SREM', KEYS[2], ARGV[1]) " .
+        "if ARGV[2] == '1' then " .
+        "redis.call('SREM', KEYS[3], ARGV[1]) " .
+        "end " .
         "end " .
         "return existsNow";
 
