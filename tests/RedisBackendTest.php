@@ -42,6 +42,8 @@ class RedisBackendTest extends CommonExtendedBackendTest
 
     protected $forceStandalone = false;
 
+    protected $useLua = true;
+
     protected $autoExpireLifetime = 0;
 
     protected $autoExpireRefreshOnLoad = 0;
@@ -51,9 +53,9 @@ class RedisBackendTest extends CommonExtendedBackendTest
         parent::__construct('Cm_Cache_Backend_Redis', $data, $dataName);
     }
 
-    public function setUp($noTag = false): void
+    protected function getBackendOptions(): array
     {
-        $this->_instance = new Cm_Cache_Backend_Redis(array(
+        return array(
             'server' => getenv('REDIS_SERVER') ?: 'localhost',
             'port'   => getenv('REDIS_PORT') ?: '6379',
             'database' => '1',
@@ -61,11 +63,16 @@ class RedisBackendTest extends CommonExtendedBackendTest
             'force_standalone' => $this->forceStandalone,
             'compress_threshold' => 100,
             'compression_lib' => 'gzip',
-            'use_lua' => true,
+            'use_lua' => $this->useLua,
             'lua_max_c_stack' => self::LUA_MAX_C_STACK,
             'auto_expire_lifetime' => $this->autoExpireLifetime,
             'auto_expire_refresh_on_load' => $this->autoExpireRefreshOnLoad,
-        ));
+        );
+    }
+
+    public function setUp($noTag = false): void
+    {
+        $this->_instance = new Cm_Cache_Backend_Redis($this->getBackendOptions());
         $this->_instance->clean();
         $this->_instance->___scriptFlush();
         parent::setUp($noTag);
@@ -210,6 +217,37 @@ class RedisBackendTest extends CommonExtendedBackendTest
         $this->assertCount(1, $this->_instance->getIdsMatchingAnyTags($_tags));
         $this->_instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, $_tags);
         $this->assertCount(0, $this->_instance->getIdsMatchingAnyTags($_tags));
+    }
+
+    /**
+     * A matchingAnyTag clean that matches more ids than remove_chunk_size commits one transaction
+     * per chunk. Without Lua this used to throw "A pipeline is already in use" in standalone mode
+     * and left the connection stuck in pipeline mode, so every later command failed as well.
+     */
+    public function testCleanModeMatchingAnyTagsMoreIdsThanRemoveChunkSize(): void
+    {
+        $options = $this->getBackendOptions();
+        $options['remove_chunk_size'] = 10;
+        $instance = new Cm_Cache_Backend_Redis($options);
+
+        $tags = array('chunked');
+        for ($i = 0; $i < 25; $i++) {
+            $this->assertTrue($instance->save('foo', 'chunked'.$i, $tags));
+        }
+        $this->assertCount(25, $instance->getIdsMatchingAnyTags($tags));
+
+        $this->assertTrue($instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, $tags));
+        $this->assertCount(0, $instance->getIdsMatchingAnyTags($tags));
+        $this->assertFalse($instance->load('chunked0'));
+        $this->assertFalse($instance->load('chunked24'));
+        $this->assertNotContains('chunked', $instance->getTags());
+        $this->assertTrue(!!$instance->load('bar'));
+
+        // The connection must still be usable after the multi-chunk clean.
+        $this->assertTrue($instance->save('bar', 'after', array('after')));
+        $this->assertEquals('bar', $instance->load('after'));
+        $this->assertTrue($instance->clean(Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, array('after')));
+        $this->assertFalse($instance->load('after'));
     }
 
     public function testScriptsCaching(): void
