@@ -892,67 +892,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _collectGarbage()
     {
-        // Clean up expired keys from tag id set and global id set
+        $this->_collectGarbageIterative();
 
-        if ($this->_useLua) {
-            // Use iterative approach with SSCAN to avoid blocking Redis for long periods
-            $this->_collectGarbageIterative();
-            return;
-        }
-
-        $exists = array();
-        $tags = (array) $this->_redis->sMembers(self::SET_TAGS);
-        foreach ($tags as $tag) {
-            // Get list of expired ids for each tag
-            $tagMembers = $this->_redis->sMembers(self::PREFIX_TAG_IDS . $tag);
-            $numTagMembers = count($tagMembers);
-            $expired = array();
-            $numExpired = $numNotExpired = 0;
-            if ($numTagMembers) {
-                while ($id = array_pop($tagMembers)) {
-                    if (! isset($exists[$id])) {
-                        $exists[$id] = $this->_redis->exists(self::PREFIX_KEY.$id);
-                    }
-                    if ($exists[$id]) {
-                        $numNotExpired++;
-                    } else {
-                        $numExpired++;
-                        $expired[] = $id;
-
-                        // Remove incrementally to reduce memory usage
-                        if (count($expired) % 100 == 0 && $numNotExpired > 0) {
-                            $this->_redis->sRem(self::PREFIX_TAG_IDS . $tag, $expired);
-                            if ($this->_notMatchingTags) { // Clean up expired ids from ids set
-                                $this->_redis->sRem(self::SET_IDS, $expired);
-                            }
-                            $expired = array();
-                        }
-                    }
-                }
-                if (! count($expired)) {
-                    continue;
-                }
-            }
-
-            // Remove empty tags or completely expired tags
-            if ($numExpired == $numTagMembers) {
-                $this->_redis->unlink(self::PREFIX_TAG_IDS . $tag);
-                $this->_redis->sRem(self::SET_TAGS, $tag);
-            }
-            // Clean up expired ids from tag ids set
-            elseif (count($expired)) {
-                $this->_redis->sRem(self::PREFIX_TAG_IDS . $tag, $expired);
-                if ($this->_notMatchingTags) { // Clean up expired ids from ids set
-                    $this->_redis->sRem(self::SET_IDS, $expired);
-                }
-            }
-            unset($expired);
-        }
-
-        // TODO
-        // Clean up global list of ids for ids with no tag
-        // if ($this->_notMatchingTags) {
-        // }
+        // TODO: Clean up global IDs for expired entries without tags.
     }
 
     /**
@@ -962,8 +904,9 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
      */
     protected function _collectGarbageIterative()
     {
-        // Ensure the safeDeleteTagKey script is loaded
-        $this->_loadSafeDeleteTagKeyScript();
+        if ($this->_useLua) {
+            $this->_loadSafeDeleteTagKeyScript();
+        }
 
         $allTags = (array) $this->_redis->sMembers(self::SET_TAGS);
         $exists = array(); // Global cache to reduce redundant EXISTS calls
@@ -980,8 +923,11 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 // Parameters: sscan(&$cursor, $field, $pattern, $count)
                 $members = $this->_redis->sscan($cursor, $tagKey, null, $this->_gcScanCount);
 
-                if (empty($members) || $members === false) {
+                if ($members === false) {
                     break;
+                }
+                if (empty($members)) {
+                    continue;
                 }
 
                 // Build list of IDs that are not in the global cache yet
@@ -1000,13 +946,20 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                         $this->_redis->exists(self::PREFIX_KEY . $id);
                     }
                     $pipelineResults = $this->_redis->exec();
+                    if (!is_array($pipelineResults) || count($pipelineResults) !== count($toLookup)) {
+                        throw new CredisException('Incomplete EXISTS pipeline results during garbage collection.');
+                    }
 
                     foreach ($toLookup as $index => $id) {
                         $existsVal = $pipelineResults[$index];
+                        if (!is_int($existsVal) && $existsVal !== true && !($existsVal === false && $this->_usesLegacyPhpRedis())) {
+                            throw new CredisException('Invalid EXISTS pipeline result during garbage collection.');
+                        }
+                        $existsVal = (int) $existsVal;
                         $batchExists[$id] = $existsVal;
 
                         // Store in global cache while under limit
-                        if (count($exists) < $this->_gcExistsCacheSize) {
+                        if (($this->_useLua || $existsVal !== 0) && count($exists) < $this->_gcExistsCacheSize) {
                             $exists[$id] = $existsVal;
                         }
                     }
@@ -1016,30 +969,37 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
                 $expiredIds = array();
                 foreach ($members as $member) {
                     $existsVal = isset($exists[$member]) ? $exists[$member] : $batchExists[$member];
-                    if ($existsVal == 0) {
+                    if ($existsVal === 0) {
                         $expiredIds[] = $member;
                     } else {
                         $totalNotExpired++;
                     }
                 }
 
-                // Remove expired IDs in chunks using the safeDeleteTagKey Lua script
                 if (!empty($expiredIds)) {
                     $expiredChunks = array_chunk($expiredIds, $this->_gcRemoveChunkSize);
                     foreach ($expiredChunks as $chunk) {
                         $this->_redis->pipeline();
-                        foreach ($chunk as $id) {
-                            // Use eval directly in pipeline (evalSha in pipeline doesn't allow fallback)
-                            $this->_evalSafeDeleteTagKeyWithEval(self::PREFIX_KEY . $id, $tagKey, $id);
+                        if ($this->_useLua) {
+                            foreach ($chunk as $id) {
+                                // Use eval directly in pipeline (evalSha in pipeline doesn't allow fallback)
+                                $this->_evalSafeDeleteTagKeyWithEval(self::PREFIX_KEY . $id, $tagKey, $id);
+                            }
+                        } else {
+                            // A save after this batch's EXISTS and before SREM can lose tag and global ID memberships.
+                            $this->_redis->sRem($tagKey, $chunk);
+                            if ($this->_notMatchingTags) {
+                                $this->_redis->sRem(self::SET_IDS, $chunk);
+                            }
                         }
                         $this->_redis->exec();
                     }
                 }
 
-            } while ($cursor !== 0 && $cursor !== null);
+            } while ((string) $cursor !== '0' && $cursor !== null);
 
             // Delete tag entirely if nothing remains
-            if ($totalNotExpired === 0) {
+            if ($members !== false && (string) $cursor === '0' && $totalNotExpired === 0) {
                 $this->_redis->pipeline()->multi();
                 $this->_redis->unlink($tagKey);
                 $this->_redis->sRem(self::SET_TAGS, $tag);
@@ -1051,6 +1011,17 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
         }
 
         unset($exists);
+    }
+
+    private function _usesLegacyPhpRedis()
+    {
+        static $legacy;
+        if ($legacy === null) {
+            $version = phpversion('redis');
+            $legacy = $version !== false && version_compare($version, '4.0.0', '<');
+        }
+
+        return $legacy && empty($this->_clientOptions->forceStandalone);
     }
 
     /**
