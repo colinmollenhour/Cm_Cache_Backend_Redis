@@ -872,7 +872,7 @@ class Cm_Cache_Backend_Redis extends Zend_Cache_Backend implements Zend_Cache_Ba
 
                 // Commit each chunk in a separate transaction
                 if (count($ids) > 1) {
-                    $this->_redis->pipeline()->exec();
+                    $this->_redis->exec();
                     $this->_redis->pipeline()->multi();
                 }
             }
